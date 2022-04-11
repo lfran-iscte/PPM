@@ -12,7 +12,7 @@ import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 
 
 class Main extends Application {
-
+  //TEST
   //Auxiliary types
   type Point = (Double, Double, Double)
   type Size = Double
