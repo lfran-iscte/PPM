@@ -1,7 +1,8 @@
+import com.sun.prism.image.Coords
 import javafx.application.Application
 import javafx.geometry.Insets
 import javafx.scene.paint.PhongMaterial
-import javafx.scene.shape._
+import javafx.scene.shape.*
 import javafx.scene.transform.{Rotate, Translate}
 import javafx.scene.{Group, Node}
 import javafx.stage.Stage
@@ -43,6 +44,9 @@ class Main extends Application {
 
     val blueMaterial = new PhongMaterial()
     blueMaterial.setDiffuseColor(Color.rgb(0,0,150))
+
+    val yellowMaterial = new PhongMaterial()
+    yellowMaterial.setDiffuseColor(Color.rgb(255,255,0))
 
     //3D objects
     val lineX = new Line(0, 0, 200, 0)
@@ -137,11 +141,29 @@ class Main extends Application {
 
     val scene = new Scene(root, 810, 610, true, SceneAntialiasing.BALANCED)
 
+    //método T3
+    def changeColor():Unit={
+      worldRoot.getChildren.forEach(n=> {
+        if((n.intersects(camVolume.getBoundsInParent())&&(n!=wiredBox)&&(n.isInstanceOf[Box])))
+          n.asInstanceOf[Shape3D].setMaterial(yellowMaterial)
+        else
+          if((n.isInstanceOf[Box]))
+            n.asInstanceOf[Shape3D].setMaterial(redMaterial)
+      })
+    }
+
+    //método T4
+  /*  def scaleOctree(fact:Double, oct:Octree[Coords]):Octree[Coords]={
+
+    }*/
+
+
     //Mouse left click interaction
     scene.setOnMouseClicked((event) => {
       camVolume.setTranslateX(camVolume.getTranslateX + 2)
       worldRoot.getChildren.removeAll()
       // metodo T3
+      changeColor()
     })
 
     //setup and start the Stage
@@ -261,8 +283,6 @@ class Main extends Application {
 
     test2._2.asInstanceOf[Shape3D].setDrawMode(DrawMode.LINE)
     worldRoot.getChildren.add(test2._2)
-
-
 
   }
 
