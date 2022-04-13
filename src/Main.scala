@@ -2,7 +2,7 @@ import com.sun.prism.image.Coords
 import javafx.application.Application
 import javafx.geometry.Insets
 import javafx.scene.paint.PhongMaterial
-import javafx.scene.shape.*
+import javafx.scene.shape._
 import javafx.scene.transform.{Rotate, Translate}
 import javafx.scene.{Group, Node}
 import javafx.stage.Stage
@@ -10,7 +10,7 @@ import javafx.geometry.Pos
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
-
+import scala.io.Source
 
 class Main extends Application {
   //TEST
@@ -99,6 +99,66 @@ class Main extends Application {
     // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
     val worldRoot:Group = new Group(wiredBox, camVolume, lineX, lineY, lineZ, cylinder1, box1)
 
+    // 3D objects from conf.txt
+
+/*    def getObjList(): List[String] ={
+      Source.fromFile("src/conf.txt").getLines.toList
+    }
+    val l1 = getObjList()*/
+
+    val l1 = Source.fromFile("src/conf.txt").getLines.toList
+
+    def novoObj (s:Shape3D, a:Array[String]): Shape3D ={
+      if(a(1) == "(150,0,0)" ) {
+        s.setMaterial(redMaterial)
+      } else if (a(1) == "(0,255,0)") {
+        s.setMaterial(greenMaterial)
+      } else if (a(1) == "(0,0,150)") {
+        s.setMaterial(blueMaterial)
+      } else if (a(1) == "(255,255,0)") {
+        s.setMaterial(yellowMaterial)
+      }
+      s.setTranslateX(a(2).toInt)
+      s.setTranslateY(a(3).toInt)
+      s.setTranslateZ(a(4).toInt)
+      s.setScaleX(a(5).toInt)
+      s.setScaleY(a(6).toInt)
+      s.setScaleZ(a(7).toInt)
+      s
+    }
+
+    def getGraphicModels(l: List[String]): List[Shape3D] = {
+      l match{
+        case Nil => Nil
+        case h::t => {
+          val arg = h.split(" ")
+          if(h.startsWith("Cylinder")){
+            val x = new Cylinder(0.5,1,10)
+            val obj = novoObj(x,arg)
+            obj :: getGraphicModels(t)
+          }
+          else{
+            val x = new Box(1,1,1)
+            val obj = novoObj(x,arg)
+            obj :: getGraphicModels(t)
+          }
+        }
+      }
+    }
+    val graphics = getGraphicModels(l1)
+
+    def getTextGroup(l: List[Shape3D]): Group = {
+      l match {
+        case Nil => new Group(camVolume, lineX, lineY, lineZ)
+        case h::t => {
+          val x = getTextGroup(t)
+          x.getChildren.add(h)
+          x
+        }
+      }
+    }
+    val worldFromTextRoot:Group = getTextGroup(graphics)
+
     // Camera
     val camera = new PerspectiveCamera(true)
 
@@ -115,7 +175,8 @@ class Main extends Application {
     worldRoot.getChildren.add(cameraTransform)
 
     // SubScene - composed by the nodes present in the worldRoot
-    val subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED)
+    //val subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED)
+    val subScene = new SubScene(worldFromTextRoot, 800, 600, true, SceneAntialiasing.BALANCED)
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
 
