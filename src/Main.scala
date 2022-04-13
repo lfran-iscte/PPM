@@ -149,7 +149,8 @@ class Main extends Application {
 
     def getTextGroup(l: List[Shape3D]): Group = {
       l match {
-        case Nil => new Group(camVolume, lineX, lineY, lineZ)
+       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
+        case Nil => new Group(camVolume)
         case h::t => {
           val x = getTextGroup(t)
           x.getChildren.add(h)
@@ -179,6 +180,41 @@ class Main extends Application {
     val subScene = new SubScene(worldFromTextRoot, 800, 600, true, SceneAntialiasing.BALANCED)
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
+
+def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
+    {
+      g match {
+        // case Nil => new Group(camVolume, lineX, lineY, lineZ)
+        case Nil => Nil
+        case h::t => {
+          getNodeDepthOctant(h,0,wiredBox,1)::funcaoteste(t)
+        }
+      }
+
+    }
+
+    val resultado = funcaoteste(graphics)
+      resultado.foreach(x => {x._2.setDrawMode(DrawMode.LINE)
+        worldFromTextRoot.getChildren.add(x._2)})
+
+
+/*
+    worldFromTextRoot.getChildren.forEach(x=> {
+      if (worldFromTextRoot.getChildren.contains(getNodeDepthOctant(x,0,wiredBox,1)._2))
+        print("nada")
+      else {
+        print("algo")
+        val temp = getNodeDepthOctant(x, 0, wiredBox, 1)._2
+        temp.setMaterial(redMaterial)
+        worldFromTextRoot.getChildren.add(temp)
+      }
+    })
+
+ */
+
+
+
+    //worldRoot.getChildren.add(test2._2)
 
     // CameraView - an additional perspective of the environment
     val cameraView = new CameraView(subScene)
@@ -251,12 +287,6 @@ class Main extends Application {
     b2.setTranslateZ(8/2)
     b2.setMaterial(redMaterial)
     b2.setDrawMode(DrawMode.LINE)
-
-
-
-
-
-
 
     val b4 = new Box(4,4,4)
     //translate because it is added by defaut to the coords (0,0,0)
@@ -334,16 +364,7 @@ class Main extends Application {
 
 
     //
-    val test = getNodeDepthOctant(b3,0,wiredBox,1)
-    val test2 = getNodeDepthOctant(box1,0,wiredBox,1)
 
-    test._2.asInstanceOf[Shape3D].setDrawMode(DrawMode.LINE)
-    worldRoot.getChildren.add(test._1)
-
-    worldRoot.getChildren.add(test._2)
-
-    test2._2.asInstanceOf[Shape3D].setDrawMode(DrawMode.LINE)
-    worldRoot.getChildren.add(test2._2)
 
   }
 
