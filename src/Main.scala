@@ -2,7 +2,7 @@ import com.sun.prism.image.Coords
 import javafx.application.Application
 import javafx.geometry.Insets
 import javafx.scene.paint.PhongMaterial
-import javafx.scene.shape.*
+import javafx.scene.shape._
 import javafx.scene.transform.{Rotate, Translate}
 import javafx.scene.{Group, Node}
 import javafx.stage.Stage
@@ -22,8 +22,10 @@ class Main extends Application {
 
   //Shape3D is an abstract class that extends javafx.scene.Node
   //Box and Cylinder are subclasses of Shape3D
-  type Section = (Placement, List[Node]) //example: ( ((0.0,0.0,0.0), 2.0), List(new Cylinder(0.5, 1, 10)))
-  type NodeDepthOctant = (Node, Box, Int, Int) // Contains a node, the box where it's contained(octant), depth and octant number
+  type Section = (Placement, List[Node])  //example: ( ((0.0,0.0,0.0), 2.0), List(new Cylinder(0.5, 1, 10)))
+  //type NodeDepthOctant = (Node,Box,Int,Int) // Contains a node, the box where it's contained(octant), depth and octant number
+
+  case class NodeDepthOctant(shape : Shape3D, division : Box, depth : Int, octantNumber : Int, parentOctantNumber : Int)
 
 
   /*
@@ -183,7 +185,8 @@ class Main extends Application {
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
 
-    def funcaoteste(g: List[Node]): List[NodeDepthOctant] = {
+def  funcaoteste(g:List[Shape3D]):List[NodeDepthOctant] =
+    {
       g match {
         // case Nil => new Group(camVolume, lineX, lineY, lineZ)
         case Nil => Nil
@@ -192,6 +195,15 @@ class Main extends Application {
         }
       }
     }
+
+    /*
+    def nodeDepthtoOctree(nodes:Map[Int, List[NodeDepthOctant]], depth:Int, ):Octree[Placement] =
+      {
+
+      }
+
+     */
+
 
     val resultado = funcaoteste(graphics)
     //  resultado.foreach(x => {x._2.setDrawMode(DrawMode.LINE)
@@ -203,12 +215,12 @@ class Main extends Application {
       lst match {
         case Nil => Nil
         case h :: t => {
-          if (camVolume.getBoundsInParent().intersects(h._2.getBoundsInParent) && (h._2.getHeight != 32)) {
-            h._2.setMaterial(yellowMaterial)
+          if (camVolume.getBoundsInParent().intersects(h.division.getBoundsInParent) && (h.division.getHeight != 32)) {
+            h.division.setMaterial(yellowMaterial)
             h :: changeColor(t)
           }
           else {
-            h._2.setMaterial(redMaterial)
+            h.division.setMaterial(redMaterial)
             h :: changeColor(t)
           }
         }
@@ -220,11 +232,11 @@ class Main extends Application {
       lst match{
         case Nil=> Nil
         case h::t=> {
-          if (h._2.getHeight != 32 && (fact == 0.5 || fact == 2)) {
-            h._2.setScaleX(fact * h._2.getScaleX)
-            h._2.setScaleY(fact * h._2.getScaleY)
-            h._2.setScaleZ(fact * h._2.getScaleZ)
-            if(wiredBox.getBoundsInParent().contains(h._1.getBoundsInParent()))
+          if (h.division.getHeight != 32 && (fact == 0.5 || fact == 2)) {
+            h.division.setScaleX(fact * h.division.getScaleX)
+            h.division.setScaleY(fact * h.division.getScaleY)
+            h.division.setScaleZ(fact * h.division.getScaleZ)
+            if(wiredBox.getBoundsInParent().contains(h.shape.getBoundsInParent()))
               h :: scaleOctree(fact, t)
             else
               scaleOctree(fact, t)
@@ -237,10 +249,10 @@ class Main extends Application {
   //método 5
     def mapColourEffect(func:Color=>Color,lst: List[NodeDepthOctant]): List[NodeDepthOctant]= {
       lst.map(x=>{
-        val c=func(x._1.asInstanceOf[Shape3D].getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
+        val c=func(x.shape.getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
         val m = new PhongMaterial()
         m.setDiffuseColor(c)
-        x._1.asInstanceOf[Shape3D].setMaterial(m)
+        x.shape.setMaterial(m)
         x
       })
     }
@@ -266,25 +278,19 @@ class Main extends Application {
     scaleOctree(0.5,resultado)
    // mapColourEffect(sepia,resultado)
     resultado.foreach(x => {
-      x._2.setDrawMode(DrawMode.LINE)
-      worldFromTextRoot.getChildren.add(x._2)
+      x.division.setDrawMode(DrawMode.LINE)
+      worldFromTextRoot.getChildren.add(x.division)
     })
-
-    /*
-        worldFromTextRoot.getChildren.forEach(x=> {
-          if (worldFromTextRoot.getChildren.contains(getNodeDepthOctant(x,0,wiredBox,1)._2))
-            print("nada")
-          else {
-            print("algo")
-            val temp = getNodeDepthOctant(x, 0, wiredBox, 1)._2
-            temp.setMaterial(redMaterial)
-            worldFromTextRoot.getChildren.add(temp)
-          }
-        })
-     */
+    val nodesByDepth = resultado.groupBy(_.depth)
+    val maxDepth = nodesByDepth.maxBy(_._1)
+    val maxDepth2 = nodesByDepth.keysIterator.max
+    println(maxDepth)
+    println(maxDepth2)
+    println(nodesByDepth)
 
 
-    //worldRoot.getChildren.add(test2._2)
+
+
 
     // CameraView - an additional perspective of the environment
     val cameraView = new CameraView(subScene)
@@ -531,8 +537,8 @@ class Main extends Application {
   }
 
   //Mover isto para outro sitio, acrescentar validações
-  def getNodeDepthOctant(obj: Node, depth: Int = 0, universe: Box, octant: Int = 1): NodeDepthOctant = {
-    def getOctant(octantNumber: Int): Box = {
+  def getNodeDepthOctant(obj:Shape3D, depth:Int=0, universe:Box,octant:Int=0, parentOctant:Int=0):NodeDepthOctant = {
+    def getOctant(octantNumber:Int): Box= {
       val octSize = universe.getHeight / 2
       val oct = new Box(octSize, octSize, octSize)
       octantNumber match {
@@ -579,7 +585,7 @@ class Main extends Application {
       }
     }
 
-    val r = new NodeDepthOctant(obj, universe, depth - 1, octant)
+    val r = new NodeDepthOctant(obj : Shape3D,universe,depth-1,octant, parentOctant)
 
     if (getOctant(1).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
       getNodeDepthOctant(obj, depth + 1, getOctant(1), 1)
@@ -611,3 +617,7 @@ object FxApp {
     Application.launch(classOf[Main], args: _*)
   }
 }
+
+
+
+
