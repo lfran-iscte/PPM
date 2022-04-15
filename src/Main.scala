@@ -2,7 +2,7 @@ import com.sun.prism.image.Coords
 import javafx.application.Application
 import javafx.geometry.Insets
 import javafx.scene.paint.PhongMaterial
-import javafx.scene.shape._
+import javafx.scene.shape.*
 import javafx.scene.transform.{Rotate, Translate}
 import javafx.scene.{Group, Node}
 import javafx.stage.Stage
@@ -10,6 +10,7 @@ import javafx.geometry.Pos
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
+
 import scala.io.Source
 
 class Main extends Application {
@@ -21,9 +22,8 @@ class Main extends Application {
 
   //Shape3D is an abstract class that extends javafx.scene.Node
   //Box and Cylinder are subclasses of Shape3D
-  type Section = (Placement, List[Node])  //example: ( ((0.0,0.0,0.0), 2.0), List(new Cylinder(0.5, 1, 10)))
-  type NodeDepthOctant = (Node,Box,Int,Int) // Contains a node, the box where it's contained(octant), depth and octant number
-
+  type Section = (Placement, List[Node]) //example: ( ((0.0,0.0,0.0), 2.0), List(new Cylinder(0.5, 1, 10)))
+  type NodeDepthOctant = (Node, Box, Int, Int) // Contains a node, the box where it's contained(octant), depth and octant number
 
 
   /*
@@ -37,16 +37,16 @@ class Main extends Application {
 
     //Materials to be applied to the 3D objects
     val redMaterial = new PhongMaterial()
-    redMaterial.setDiffuseColor(Color.rgb(150,0,0))
+    redMaterial.setDiffuseColor(Color.rgb(150, 0, 0))
 
     val greenMaterial = new PhongMaterial()
-    greenMaterial.setDiffuseColor(Color.rgb(0,255,0))
+    greenMaterial.setDiffuseColor(Color.rgb(0, 255, 0))
 
     val blueMaterial = new PhongMaterial()
-    blueMaterial.setDiffuseColor(Color.rgb(0,0,150))
+    blueMaterial.setDiffuseColor(Color.rgb(0, 0, 150))
 
     val yellowMaterial = new PhongMaterial()
-    yellowMaterial.setDiffuseColor(Color.rgb(255,255,0))
+    yellowMaterial.setDiffuseColor(Color.rgb(255, 255, 0))
 
     //3D objects
     val lineX = new Line(0, 0, 200, 0)
@@ -88,28 +88,28 @@ class Main extends Application {
     cylinder2.setScaleX(2)
     cylinder2.setScaleY(10)
     cylinder2.setScaleZ(2)
-    cylinder2.setMaterial(greenMaterial)
+    cylinder2.setMaterial(redMaterial)
 
-    val box1 = new Box(1, 5, 1)  //
+    val box1 = new Box(1, 5, 1) //
     box1.setTranslateX(10)
     box1.setTranslateY(12)
     box1.setTranslateZ(5)
-    box1.setMaterial(greenMaterial)
+    box1.setMaterial(yellowMaterial)
 
     // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
-    val worldRoot:Group = new Group(wiredBox, camVolume, lineX, lineY, lineZ, cylinder1, box1)
+    val worldRoot: Group = new Group(wiredBox, camVolume, lineX, lineY, lineZ)
 
     // 3D objects from conf.txt
 
-/*    def getObjList(): List[String] ={
-      Source.fromFile("src/conf.txt").getLines.toList
-    }
-    val l1 = getObjList()*/
+    /*    def getObjList(): List[String] ={
+          Source.fromFile("src/conf.txt").getLines.toList
+        }
+        val l1 = getObjList()*/
 
     val l1 = Source.fromFile("src/conf.txt").getLines.toList
 
-    def novoObj (s:Shape3D, a:Array[String]): Shape3D ={
-      if(a(1) == "(150,0,0)" ) {
+    def novoObj(s: Shape3D, a: Array[String]): Shape3D = {
+      if (a(1) == "(150,0,0)") {
         s.setMaterial(redMaterial)
       } else if (a(1) == "(0,255,0)") {
         s.setMaterial(greenMaterial)
@@ -128,37 +128,39 @@ class Main extends Application {
     }
 
     def getGraphicModels(l: List[String]): List[Shape3D] = {
-      l match{
+      l match {
         case Nil => Nil
-        case h::t => {
+        case h :: t => {
           val arg = h.split(" ")
-          if(h.startsWith("Cylinder")){
-            val x = new Cylinder(0.5,1,10)
-            val obj = novoObj(x,arg)
+          if (h.startsWith("Cylinder")) {
+            val x = new Cylinder(0.5, 1, 10)
+            val obj = novoObj(x, arg)
             obj :: getGraphicModels(t)
           }
-          else{
-            val x = new Box(1,1,1)
-            val obj = novoObj(x,arg)
+          else {
+            val x = new Box(1, 1, 1)
+            val obj = novoObj(x, arg)
             obj :: getGraphicModels(t)
           }
         }
       }
     }
+
     val graphics = getGraphicModels(l1)
 
     def getTextGroup(l: List[Shape3D]): Group = {
       l match {
-       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
+        // case Nil => new Group(camVolume, lineX, lineY, lineZ)
         case Nil => new Group(camVolume)
-        case h::t => {
+        case h :: t => {
           val x = getTextGroup(t)
           x.getChildren.add(h)
           x
         }
       }
     }
-    val worldFromTextRoot:Group = getTextGroup(graphics)
+
+    val worldFromTextRoot: Group = getTextGroup(graphics)
 
     // Camera
     val camera = new PerspectiveCamera(true)
@@ -181,37 +183,105 @@ class Main extends Application {
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
 
-def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
-    {
+    def funcaoteste(g: List[Node]): List[NodeDepthOctant] = {
       g match {
         // case Nil => new Group(camVolume, lineX, lineY, lineZ)
         case Nil => Nil
-        case h::t => {
-          getNodeDepthOctant(h,0,wiredBox,1)::funcaoteste(t)
+        case h :: t => {
+          getNodeDepthOctant(h, 0, wiredBox, 1) :: funcaoteste(t)
         }
       }
-
     }
 
     val resultado = funcaoteste(graphics)
-      resultado.foreach(x => {x._2.setDrawMode(DrawMode.LINE)
-        worldFromTextRoot.getChildren.add(x._2)})
+    //  resultado.foreach(x => {x._2.setDrawMode(DrawMode.LINE)
+    //  worldFromTextRoot.getChildren.add(x._2)})
 
 
-/*
-    worldFromTextRoot.getChildren.forEach(x=> {
-      if (worldFromTextRoot.getChildren.contains(getNodeDepthOctant(x,0,wiredBox,1)._2))
-        print("nada")
-      else {
-        print("algo")
-        val temp = getNodeDepthOctant(x, 0, wiredBox, 1)._2
-        temp.setMaterial(redMaterial)
-        worldFromTextRoot.getChildren.add(temp)
+    //método T3
+    def changeColor(lst: List[NodeDepthOctant]): List[NodeDepthOctant] = {
+      lst match {
+        case Nil => Nil
+        case h :: t => {
+          if (camVolume.getBoundsInParent().intersects(h._2.getBoundsInParent) && (h._2.getHeight != 32)) {
+            h._2.setMaterial(yellowMaterial)
+            h :: changeColor(t)
+          }
+          else {
+            h._2.setMaterial(redMaterial)
+            h :: changeColor(t)
+          }
+        }
       }
+    }
+
+    //método T4
+    def scaleOctree(fact: Double, lst: List[NodeDepthOctant]): List[NodeDepthOctant]={
+      lst match{
+        case Nil=> Nil
+        case h::t=> {
+          if (h._2.getHeight != 32 && (fact == 0.5 || fact == 2)) {
+            h._2.setScaleX(fact * h._2.getScaleX)
+            h._2.setScaleY(fact * h._2.getScaleY)
+            h._2.setScaleZ(fact * h._2.getScaleZ)
+            if(wiredBox.getBoundsInParent().contains(h._1.getBoundsInParent()))
+              h :: scaleOctree(fact, t)
+            else
+              scaleOctree(fact, t)
+          }
+          else
+            scaleOctree(fact, t)
+        }
+        }
+      }
+  //método 5
+    def mapColourEffect(func:Color=>Color,lst: List[NodeDepthOctant]): List[NodeDepthOctant]= {
+      lst.map(x=>{
+        val c=func(x._1.asInstanceOf[Shape3D].getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
+        val m = new PhongMaterial()
+        m.setDiffuseColor(c)
+        x._1.asInstanceOf[Shape3D].setMaterial(m)
+        x
+      })
+    }
+
+    def sepia (c:Color):Color= {
+      val r1 = (0.40 * c.getRed.toInt + 0.77 * c.getGreen.toInt + 0.20 * c.getBlue.toInt).toInt
+      val g1 = (0.35 * c.getRed.toInt + 0.69 * c.getGreen.toInt + 0.17 * c.getBlue.toInt).toInt
+      val b1 = (0.27 * c.getRed.toInt + 0.53 * c.getGreen.toInt + 0.13 * c.getBlue.toInt).toInt
+
+      if (r1 > 255)
+        Color.rgb(255, g1, b1)
+      else if (g1 > 255)
+        Color.rgb(r1, 255, b1)
+      else if (b1 > 255)
+        Color.rgb(r1, g1, 255)
+      else
+          Color.rgb(r1, g1, b1)
+    }
+
+    def removeGreenComponent (c:Color):Color= {Color.rgb((c.getRed*255).toInt,0,(c.getBlue*255).toInt)}
+
+    changeColor(resultado)
+    scaleOctree(0.5,resultado)
+   // mapColourEffect(sepia,resultado)
+    resultado.foreach(x => {
+      x._2.setDrawMode(DrawMode.LINE)
+      worldFromTextRoot.getChildren.add(x._2)
     })
 
- */
-
+    /*
+        worldFromTextRoot.getChildren.forEach(x=> {
+          if (worldFromTextRoot.getChildren.contains(getNodeDepthOctant(x,0,wiredBox,1)._2))
+            print("nada")
+          else {
+            print("algo")
+            val temp = getNodeDepthOctant(x, 0, wiredBox, 1)._2
+            temp.setMaterial(redMaterial)
+            worldFromTextRoot.getChildren.add(temp)
+          }
+        })
+     */
 
 
     //worldRoot.getChildren.add(test2._2)
@@ -227,9 +297,9 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
     cameraView.getCamera.setTranslateZ(-50)
     cameraView.startViewing
 
-      // Position of the CameraView: Right-bottom corner
-      StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
-      StackPane.setMargin(cameraView, new Insets(5))
+    // Position of the CameraView: Right-bottom corner
+    StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
+    StackPane.setMargin(cameraView, new Insets(5))
 
     // Scene - defines what is rendered (in this case the subScene and the cameraView)
     val root = new StackPane(subScene, cameraView)
@@ -238,21 +308,6 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
 
     val scene = new Scene(root, 810, 610, true, SceneAntialiasing.BALANCED)
 
-    //método T3
-    def changeColor():Unit={
-      worldRoot.getChildren.forEach(n=> {
-        if((n.intersects(camVolume.getBoundsInParent())&&(n!=wiredBox)&&(n.isInstanceOf[Box])))
-          n.asInstanceOf[Shape3D].setMaterial(yellowMaterial)
-        else
-          if((n.isInstanceOf[Box]))
-            n.asInstanceOf[Shape3D].setMaterial(redMaterial)
-      })
-    }
-
-    //método T4
-  /*  def scaleOctree(fact:Double, oct:Octree[Coords]):Octree[Coords]={
-
-    }*/
 
 
     //Mouse left click interaction
@@ -260,7 +315,7 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
       camVolume.setTranslateX(camVolume.getTranslateX + 2)
       worldRoot.getChildren.removeAll()
       // metodo T3
-      changeColor()
+      changeColor(resultado)
     })
 
     //setup and start the Stage
@@ -271,83 +326,134 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
 
     //oct1 - example of an Octree[Placement] that contains only one Node (i.e. cylinder1)
     //In case of difficulties to implement task T2 this octree can be used as input for tasks T3, T4 and T5
-/*
-    val placement1: Placement = ((0, 0, 0), 8.0)
-    val sec1: Section = (((0.0,0.0,0.0), 4.0), List(cylinder2.asInstanceOf[Node]))
-    val ocLeaf1 = OcLeaf(sec1)
-    val oct1:Octree[Placement] = OcNode[Placement](placement1, ocLeaf1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-    val oct2:Octree[Placement] = OcNode[Placement](placement1, oct1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-
-
-    //example of bounding boxes (corresponding to the octree oct1) added manually to the world
-    val b2 = new Box(8,8,8)
-    //translate because it is added by defaut to the coords (0,0,0)
-    b2.setTranslateX(8/2)
-    b2.setTranslateY(8/2)
-    b2.setTranslateZ(8/2)
-    b2.setMaterial(redMaterial)
-    b2.setDrawMode(DrawMode.LINE)
-
-    val b4 = new Box(4,4,4)
-    //translate because it is added by defaut to the coords (0,0,0)
-    b4.setTranslateX(4/2+4)
-    b4.setTranslateY(4/2+4)
-    b4.setTranslateZ(4/2+4)
-    b4.setMaterial(redMaterial)
-    b4.setDrawMode(DrawMode.LINE)
-    //adding boxes b2 and b3 to the world
-    worldRoot.getChildren.add(b2)
-    worldRoot.getChildren.add(b3)
-    worldRoot.getChildren.add(b4)
-   // worldRoot.getChildren.add(cylinder2)
-*/
-    val b3 = new Box(4,4,4)
-    //translate because it is added by defaut to the coords (0,0,0)
-    b3.setTranslateX(4/2)
-    b3.setTranslateY(4/2)
-    b3.setTranslateZ(4/2)
-    b3.setMaterial(redMaterial)
-    b3.setDrawMode(DrawMode.LINE)
-
-/* Testes
-    val octant1 = getOctant(1,wiredBox)
-    octant1.setMaterial(redMaterial)
-    octant1.setDrawMode(DrawMode.LINE)
-    val octant2 = getOctant(2,wiredBox)
-    octant1.setMaterial(redMaterial)
-    val octant3 = getOctant(3,wiredBox)
-    octant1.setMaterial(redMaterial)
-    val octant4 = getOctant(4,wiredBox)
-    octant1.setMaterial(redMaterial)
-    val octant5 = getOctant(5,wiredBox)
-    octant1.setMaterial(redMaterial)
-
-    val suboctant1 = getOctant(1,octant1)
-    val suboctant2 = getOctant(2,octant1)
-    val suboctant3 = getOctant(3,octant1)
-    val suboctant4 = getOctant(4,octant1)
-    val suboctant5 = getOctant(5,octant1)
-    val suboctant6 = getOctant(6,octant1)
-
-    suboctant1.setMaterial(redMaterial)
-    suboctant2.setMaterial(redMaterial)
-    suboctant3.setMaterial(redMaterial)
-    suboctant4.setMaterial(redMaterial)
-    suboctant5.setMaterial(redMaterial)
-    suboctant6.setMaterial(redMaterial)
+    /*
+           val placement1: Placement = ((0, 0, 0), 8.0)
+           val sec1: Section = (((0.0,0.0,0.0), 4.0), List(cylinder2.asInstanceOf[Node],cylinder1.asInstanceOf[Node],box1.asInstanceOf[Node]))
+           val ocLeaf1 = OcLeaf(sec1)
+           val oct1:Octree[Placement] = OcNode[Placement](placement1, ocLeaf1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+           val oct2:Octree[Placement] = OcNode[Placement](placement1, oct1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+           //example of bounding boxes (corresponding to the octree oct1) added manually to the world
+           val b2 = new Box(8,8,8)
+           //translate because it is added by defaut to the coords (0,0,0)
+           b2.setTranslateX(8/2)
+           b2.setTranslateY(8/2)
+           b2.setTranslateZ(8/2)
+           b2.setMaterial(redMaterial)
+           b2.setDrawMode(DrawMode.LINE)
+           val b4 = new Box(4,4,4)
+           //translate because it is added by defaut to the coords (0,0,0)
+           b4.setTranslateX(4/2+4)
+           b4.setTranslateY(4/2+4)
+           b4.setTranslateZ(4/2+4)
+           b4.setMaterial(redMaterial)
+           b4.setDrawMode(DrawMode.LINE)
+           //adding boxes b2 and b3 to the world
+           worldRoot.getChildren.add(b2)
+          // worldRoot.getChildren.add(b3)
+           worldRoot.getChildren.add(b4)
+           worldRoot.getChildren.add(cylinder2)
+           worldRoot.getChildren.add(cylinder1)
+           worldRoot.getChildren.add(box1)
 
 
 
 
-    println(getOctant(1,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(2,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(3,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(4,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(5,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(6,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(7,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-    println(getOctant(8,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
-*/
+       val b3 = new Box(4, 4, 4)
+       //translate because it is added by defaut to the coords (0,0,0)
+       b3.setTranslateX(4 / 2)
+       b3.setTranslateY(4 / 2)
+       b3.setTranslateZ(4 / 2)
+       b3.setMaterial(redMaterial)
+       b3.setDrawMode(DrawMode.LINE)
+       worldRoot.getChildren.add(b3)
+
+
+       //método 5 sobre a octree
+       def mapColourEffect1(func:Color=>Color,oct:Octree[Placement]): Octree[Placement] = {
+         oct match {
+           case OcEmpty => OcEmpty
+           case OcLeaf(section) => section.asInstanceOf[Section]._2.map(x=>{
+
+             val c=func(x.asInstanceOf[Shape3D].getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
+             val m = new PhongMaterial()
+             m.setDiffuseColor(c)
+             x.asInstanceOf[Shape3D].setMaterial(m)
+             val y = x
+             worldRoot.getChildren.remove(x)
+             worldRoot.getChildren.add(y)
+             y
+             })
+           OcLeaf(section)
+           case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode(coords, mapColourEffect1(func,up_00),mapColourEffect1(func,up_01),mapColourEffect1(func,up_10),
+             mapColourEffect1(func,up_11),mapColourEffect1(func,down_00),mapColourEffect1(func,down_01),mapColourEffect1(func,down_10),mapColourEffect1(func,down_11))
+         }
+       }
+       //método 4 sobre a octree
+       def scaleOctree1(fact:Double, oct:Octree[Placement]):Octree[Placement] = {
+         oct match {
+           case OcEmpty => OcEmpty
+           case OcLeaf(section) => if(fact==0.5||fact==2)
+           { val s = section.asInstanceOf[Section]._1._2*fact
+             val l:List[Node]=section.asInstanceOf[Section]._2.map(x=>{
+               val y = x
+               y.setScaleX(x.getScaleX*fact)
+               y.setScaleY(x.getScaleY*fact)
+               y.setScaleZ(x.getScaleZ*fact)
+               worldRoot.getChildren.remove(x)
+               if(wiredBox.getHeight()==32&&wiredBox.getBoundsInParent().contains(y.getBoundsInParent)) {
+                 worldRoot.getChildren.add(y)
+               }
+               y
+           })
+             OcLeaf(s,l)
+           }
+           else
+             OcLeaf(section)
+           case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
+             val c:Placement = (coords._1, coords._2*fact)
+             OcNode(c, scaleOctree1(fact, up_00), scaleOctree1(fact, up_01), scaleOctree1(fact, up_10),
+               scaleOctree1(fact, up_11), scaleOctree1(fact, down_00), scaleOctree1(fact, down_01), scaleOctree1(fact, down_10), scaleOctree1(fact, down_11))
+           }
+         }
+       }
+
+      mapColourEffect1(removeGreenComponent,oct2)
+       // mapColourEffect1(sepia,oct2)
+       scaleOctree1(2,oct2)
+   */
+    /* Testes
+        val octant1 = getOctant(1,wiredBox)
+        octant1.setMaterial(redMaterial)
+        octant1.setDrawMode(DrawMode.LINE)
+        val octant2 = getOctant(2,wiredBox)
+        octant1.setMaterial(redMaterial)
+        val octant3 = getOctant(3,wiredBox)
+        octant1.setMaterial(redMaterial)
+        val octant4 = getOctant(4,wiredBox)
+        octant1.setMaterial(redMaterial)
+        val octant5 = getOctant(5,wiredBox)
+        octant1.setMaterial(redMaterial)
+        val suboctant1 = getOctant(1,octant1)
+        val suboctant2 = getOctant(2,octant1)
+        val suboctant3 = getOctant(3,octant1)
+        val suboctant4 = getOctant(4,octant1)
+        val suboctant5 = getOctant(5,octant1)
+        val suboctant6 = getOctant(6,octant1)
+        suboctant1.setMaterial(redMaterial)
+        suboctant2.setMaterial(redMaterial)
+        suboctant3.setMaterial(redMaterial)
+        suboctant4.setMaterial(redMaterial)
+        suboctant5.setMaterial(redMaterial)
+        suboctant6.setMaterial(redMaterial)
+        println(getOctant(1,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(2,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(3,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(4,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(5,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(6,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(7,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+        println(getOctant(8,wiredBox).getBoundsInParent.contains(b3.asInstanceOf[Shape3D].getBoundsInParent))
+    */
 
 
     //worldRoot.getChildren.add(octant1)
@@ -377,7 +483,7 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
   }
 
   //Usado para testes
-  def getOctant(octantNumber:Int, universe:Box): Box= {
+  def getOctant(octantNumber: Int, universe: Box): Box = {
     val octSize = universe.getHeight / 2
     val oct = new Box(octSize, octSize, octSize)
     octantNumber match {
@@ -387,7 +493,7 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
         oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
         oct
       case 2 =>
-        oct.setTranslateX(universe.getTranslateX - octSize/2)
+        oct.setTranslateX(universe.getTranslateX - octSize / 2)
         oct.setTranslateY(universe.getTranslateY + octSize / 2)
         oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
         oct
@@ -417,16 +523,16 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
         oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
         oct
       case 8 =>
-        oct.setTranslateX(universe.getTranslateX - octSize / 2 )
-        oct.setTranslateY(universe.getTranslateY - octSize / 2 )
-        oct.setTranslateZ(universe.getTranslateZ - octSize / 2 )
+        oct.setTranslateX(universe.getTranslateX - octSize / 2)
+        oct.setTranslateY(universe.getTranslateY - octSize / 2)
+        oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
         oct
     }
   }
 
   //Mover isto para outro sitio, acrescentar validações
-  def getNodeDepthOctant(obj:Node, depth:Int=0, universe:Box,octant:Int=1):NodeDepthOctant = {
-    def getOctant(octantNumber:Int): Box= {
+  def getNodeDepthOctant(obj: Node, depth: Int = 0, universe: Box, octant: Int = 1): NodeDepthOctant = {
+    def getOctant(octantNumber: Int): Box = {
       val octSize = universe.getHeight / 2
       val oct = new Box(octSize, octSize, octSize)
       octantNumber match {
@@ -436,7 +542,7 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
           oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
           oct
         case 2 =>
-          oct.setTranslateX(universe.getTranslateX - octSize/2)
+          oct.setTranslateX(universe.getTranslateX - octSize / 2)
           oct.setTranslateY(universe.getTranslateY + octSize / 2)
           oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
           oct
@@ -466,33 +572,33 @@ def  funcaoteste(g:List[Node]):List[NodeDepthOctant] =
           oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
           oct
         case 8 =>
-          oct.setTranslateX(universe.getTranslateX - octSize / 2 )
-          oct.setTranslateY(universe.getTranslateY - octSize / 2 )
-          oct.setTranslateZ(universe.getTranslateZ - octSize / 2 )
+          oct.setTranslateX(universe.getTranslateX - octSize / 2)
+          oct.setTranslateY(universe.getTranslateY - octSize / 2)
+          oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
           oct
       }
     }
 
-    val r = new NodeDepthOctant(obj,universe,depth-1,octant)
+    val r = new NodeDepthOctant(obj, universe, depth - 1, octant)
 
-   if (getOctant(1).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(1),1)
-      else if (getOctant(2).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(2),2)
-      else if (getOctant(3).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(3),3)
-      else if (getOctant(4).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(4),4)
-      else if (getOctant(5).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(5),5)
-      else if (getOctant(6).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(6),6)
-      else if (getOctant(7).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(7),7)
-      else if (getOctant(8).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj,depth+1,getOctant(8),8)
-      else
-        r
+    if (getOctant(1).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(1), 1)
+    else if (getOctant(2).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(2), 2)
+    else if (getOctant(3).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(3), 3)
+    else if (getOctant(4).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(4), 4)
+    else if (getOctant(5).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(5), 5)
+    else if (getOctant(6).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(6), 6)
+    else if (getOctant(7).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(7), 7)
+    else if (getOctant(8).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
+      getNodeDepthOctant(obj, depth + 1, getOctant(8), 8)
+    else
+      r
 
   }
 
@@ -505,7 +611,3 @@ object FxApp {
     Application.launch(classOf[Main], args: _*)
   }
 }
-
-
-
-
