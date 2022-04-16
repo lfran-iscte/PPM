@@ -477,6 +477,19 @@ def  funcaoteste(g:List[Shape3D]):List[NodeDepthOctant] =
 
     //
 
+    val placement1: Placement = ((0, 0, 0), 8.0)
+    val sec1: Section = (((0.0,0.0,0.0), 4.0), List(cylinder2.asInstanceOf[Node],cylinder1.asInstanceOf[Node],box1.asInstanceOf[Node]))
+    val ocLeaf1 = OcLeaf(sec1)
+    val oct1:Octree[Placement] = OcNode[Placement](placement1, ocLeaf1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+    val oct2:Octree[Placement] = OcNode[Placement](placement1, oct1, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+
+    /*def mergeOctrees(octA:OcNode[Placement], octB:OcNode[Placement]):OcNode[Placement] =
+      {
+        if(octB.up_00.getClass() == OcNode)
+
+      }
+
+*/
 
   }
 
@@ -588,21 +601,21 @@ def  funcaoteste(g:List[Shape3D]):List[NodeDepthOctant] =
     val r = new NodeDepthOctant(obj : Shape3D,universe,depth-1,octant, parentOctant)
 
     if (getOctant(1).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(1), 1)
+      getNodeDepthOctant(obj, depth + 1, getOctant(1), 1,octant)
     else if (getOctant(2).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(2), 2)
+      getNodeDepthOctant(obj, depth + 1, getOctant(2), 2,octant)
     else if (getOctant(3).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(3), 3)
+      getNodeDepthOctant(obj, depth + 1, getOctant(3), 3,octant)
     else if (getOctant(4).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(4), 4)
+      getNodeDepthOctant(obj, depth + 1, getOctant(4), 4,octant)
     else if (getOctant(5).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(5), 5)
+      getNodeDepthOctant(obj, depth + 1, getOctant(5), 5,octant)
     else if (getOctant(6).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(6), 6)
+      getNodeDepthOctant(obj, depth + 1, getOctant(6), 6,octant)
     else if (getOctant(7).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(7), 7)
+      getNodeDepthOctant(obj, depth + 1, getOctant(7), 7,octant)
     else if (getOctant(8).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-      getNodeDepthOctant(obj, depth + 1, getOctant(8), 8)
+      getNodeDepthOctant(obj, depth + 1, getOctant(8), 8,octant)
     else
       r
 
