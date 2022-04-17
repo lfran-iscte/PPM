@@ -11,6 +11,7 @@ import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 
+import javax.swing.LayoutStyle.ComponentPlacement
 import scala.io.Source
 
 class Main extends Application {
@@ -150,19 +151,118 @@ class Main extends Application {
 
     val graphics = getGraphicModels(l1)
 
+
     def getTextGroup(l: List[Shape3D]): Group = {
       l match {
         // case Nil => new Group(camVolume, lineX, lineY, lineZ)
         case Nil => new Group(camVolume)
         case h :: t => {
-          val x = getTextGroup(t)
-          x.getChildren.add(h)
-          x
+          if(wiredBox.getBoundsInParent().contains(h.getBoundsInParent())){
+            val x = getTextGroup(t)
+            x.getChildren.add(h)
+            x
+          }
+          else{
+            getTextGroup(t)
+          }
         }
       }
     }
 
     val worldFromTextRoot: Group = getTextGroup(graphics)
+
+    // ----------------- TESTE DE OCTREE -----------------
+    def hasObj(x: List[Shape3D], y:Node): Boolean = x match{
+      case Nil => false
+      case h::t => if(y.getBoundsInParent.contains(h.getBoundsInParent)) true  else hasObj(t,y)
+    }
+
+    def shapeToNode(s: List[Shape3D]): List[Node] = s match{
+      case Nil => Nil
+      case h::t => h.asInstanceOf[Node]::shapeToNode(t)
+    }
+
+    def getOcLeafs (root: Box): List[Node] = {
+      val newSide = root.asInstanceOf[Box].getHeight/2
+      val tx = root.asInstanceOf[Box].getTranslateX; val ty = root.asInstanceOf[Box].getTranslateY; val tz = root.asInstanceOf[Box].getTranslateZ
+      val oc1 = new Box(tx+newSide, ty+newSide, tz+newSide)
+      val oc2 = new Box(tx-newSide, ty+newSide, tz+newSide)
+      val oc3 = new Box(tx+newSide, ty-newSide, tz+newSide)
+      val oc4 = new Box(tx+newSide, ty+newSide, tz-newSide)
+      val oc5 = new Box(tx-newSide, ty-newSide, tz+newSide)
+      val oc6 = new Box(tx-newSide, ty+newSide, tz-newSide)
+      val oc7 = new Box(tx+newSide, ty-newSide, tz-newSide)
+      val oc8 = new Box(tx+newSide, ty+newSide, tz+newSide)
+      List(oc1,oc2,oc3,oc4,oc5,oc6,oc7,oc8)
+    }
+
+    def setOcleafList(newOcleaf:Node, objs: List[Shape3D]): List[Node] ={
+      objs match {
+        case Nil => Nil
+        case h::t => { if(newOcleaf.asInstanceOf[Shape3D].getBoundsInParent.contains(h.getBoundsInParent))
+          h::setOcleafList(newOcleaf,t)
+        else setOcleafList(newOcleaf, t)}
+      }
+    }
+
+    def getOcTree(newOcleaf: Node, x:List[Shape3D]): Octree[Placement] = {
+      if (hasObj(x, newOcleaf)) {
+        //definir a lista de objetos dentro do nó
+        val lst = setOcleafList(newOcleaf, x)
+        //definir a section
+        val s: Section = (((newOcleaf.getTranslateX, newOcleaf.getTranslateY, newOcleaf.getTranslateZ), newOcleaf.asInstanceOf[Box].getHeight), lst)
+        //nova ocleaf, com novas coordenadas, tamanho e lista de objetos
+        if (getTree(x,newOcleaf.asInstanceOf[Shape3D]) == OcEmpty){
+          OcLeaf(s)
+        }
+        else getTree(x,newOcleaf.asInstanceOf[Shape3D])
+      }
+      else OcEmpty
+    }
+
+    def getTree(x:List[Shape3D], root: Shape3D):Octree[Placement] ={
+      val h: Size = root.asInstanceOf[Box].getHeight
+      val p: Placement = ((root.getTranslateX, root.getTranslateY, root.getTranslateZ),h)
+      //val z = shapeToNode(x)
+      //val s: Section = (((root.getTranslateX, root.getTranslateY, root.getTranslateZ),h),z)
+      //val l = OcLeaf(s)
+
+      //verificar se Ocnode é OcEmpty
+      if(hasObj(x,root)){
+        //Se tem Objetos gera OcTrees (OcLeafs ou OcEmpty) => criar novos nós (Octrees)
+        val newSide = root.asInstanceOf[Box].getHeight/2
+        val tx = root.asInstanceOf[Box].getTranslateX; val ty = root.asInstanceOf[Box].getTranslateY; val tz = root.asInstanceOf[Box].getTranslateZ
+        val oc1 = new Box(tx+newSide, ty+newSide, tz+newSide)
+        val oc2 = new Box(tx-newSide, ty+newSide, tz+newSide)
+        val oc3 = new Box(tx+newSide, ty-newSide, tz+newSide)
+        val oc4 = new Box(tx+newSide, ty+newSide, tz-newSide)
+        val oc5 = new Box(tx-newSide, ty-newSide, tz+newSide)
+        val oc6 = new Box(tx-newSide, ty+newSide, tz-newSide)
+        val oc7 = new Box(tx+newSide, ty-newSide, tz-newSide)
+        val oc8 = new Box(tx+newSide, ty+newSide, tz+newSide)
+
+        // Verificar se os objetos ficam contidos nalgum dos novos nós
+        if ((hasObj(x,oc1))||(hasObj(x,oc2))|| (hasObj(x,oc3)) || (hasObj(x,oc4) || (hasObj(x,oc5)) || (hasObj(x,oc6)) || (hasObj(x,oc7))) || hasObj(x,oc8)){
+
+        OcNode[Placement](p,getOcTree(oc1.asInstanceOf[Node],x),
+                            getOcTree(oc2.asInstanceOf[Node],x),
+                            getOcTree(oc3.asInstanceOf[Node],x),
+                            getOcTree(oc4.asInstanceOf[Node],x),
+                            getOcTree(oc5.asInstanceOf[Node],x),
+                            getOcTree(oc6.asInstanceOf[Node],x),
+                            getOcTree(oc7.asInstanceOf[Node],x),
+                            getOcTree(oc8.asInstanceOf[Node],x))
+        }
+        // se os novos nós não contêm objectos => OcEmpty
+        else OcEmpty
+      }
+      // Se o nó não contem objetos => OcEmpty
+      else OcEmpty
+    }
+
+    val tree = getTree(graphics,wiredBox)
+
+    // --------------- FIM DE TESTE DE OCTREE -------------
 
     // Camera
     val camera = new PerspectiveCamera(true)
@@ -630,6 +730,8 @@ object FxApp {
     Application.launch(classOf[Main], args: _*)
   }
 }
+
+
 
 
 
