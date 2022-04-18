@@ -108,17 +108,6 @@ class Main extends Application {
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
 
-def  funcaoteste(g:List[Shape3D]):List[NodeDepthOctant] =
-    {
-      g match {
-        // case Nil => new Group(camVolume, lineX, lineY, lineZ)
-        case Nil => Nil
-        case h :: t => {
-          getNodeDepthOctant(h, 0, wiredBox, 1) :: funcaoteste(t)
-        }
-      }
-    }
-
 
     // CameraView - an additional perspective of the environment
     val cameraView = new CameraView(subScene)
