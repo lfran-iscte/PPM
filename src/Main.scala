@@ -83,8 +83,6 @@ class Main extends Application {
     println(graphics)
     val mainOct = insertTrees(graphics)
     println (mainOct)
-
-
     val worldFromTextRoot: Group = getTextGroup(graphics,worldRoot)
 
 
@@ -284,6 +282,7 @@ class Main extends Application {
           partition.setTranslateX(placement._1._1)
           partition.setTranslateY(placement._1._2)
           partition.setTranslateZ(placement._1._3)
+          partition.setDrawMode(DrawMode.LINE)
           OcLeaf((placement, List(shape, partition)))
         }
 
