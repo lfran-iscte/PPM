@@ -79,11 +79,14 @@ class Main extends Application {
 
     val l1 = Source.fromFile("src/conf.txt").getLines.toList
     val graphics = getGraphicModels(l1)
-
-    println(graphics)
+    //println(graphics)
     val mainOct = insertTrees(graphics)
-    println (mainOct)
-    val worldFromTextRoot: Group = getTextGroup(graphics,worldRoot)
+    //println (tree)
+    //val worldFromTextRoot: Group = getTextGroup(graphics,worldRoot)
+    addToWorld(mainOct,worldRoot)
+    addToWorld(changeColor(mainOct,camVolume),worldRoot)
+    addToWorld(scaleOctree1(0.5,mainOct),worldRoot)
+    //addToWorld(mapColourEffect1(removeGreenComponent,mainOct),worldRoot)
 
 
     // Camera
@@ -102,7 +105,7 @@ class Main extends Application {
     worldRoot.getChildren.add(cameraTransform)
 
     // SubScene - composed by the nodes present in the worldRoot
-    val subScene = new SubScene(worldFromTextRoot, 800, 600, true, SceneAntialiasing.BALANCED)
+    val subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED)
     subScene.setFill(Color.DARKSLATEGRAY)
     subScene.setCamera(camera)
 
@@ -136,7 +139,7 @@ class Main extends Application {
       camVolume.setTranslateX(camVolume.getTranslateX + 2)
       worldRoot.getChildren.removeAll()
       // metodo T3
-   //   changeColor(resultado)
+      addToWorld(changeColor(mainOct,camVolume),worldRoot)
     })
 
     //setup and start the Stage
@@ -208,6 +211,31 @@ class Main extends Application {
 
 
   // T2
+
+
+
+  //método T3
+  def addToWorld( oct:Octree[Placement], worldObjects : Group ): Unit = {
+    oct match {
+      case OcEmpty => Nil
+      case OcLeaf(section : Section) =>
+         section._2.map(x=>{
+           val y = x
+          worldObjects.getChildren.remove(x)
+           worldObjects.getChildren.add(y)
+        })
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode
+        addToWorld(up_00,worldObjects)
+        addToWorld(up_01, worldObjects)
+        addToWorld(up_10, worldObjects)
+        addToWorld(up_11,worldObjects)
+        addToWorld(down_00, worldObjects)
+        addToWorld(down_01,worldObjects)
+        addToWorld(down_10,worldObjects)
+        addToWorld(down_11, worldObjects)
+    }
+  }
+
   def  insertTrees(g:List[Shape3D],oct:Octree[Placement] = new OcNode[Placement](((0, 0, 0), 32.0), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty), placement: Placement = ((0, 0, 0), 32.0) ) : Octree[Placement] =
   {
     g match {
@@ -310,39 +338,36 @@ class Main extends Application {
   }
 
   //método T3
-  def changeColor( oct:Octree[Placement], intersectingObject : Shape3D, worldObjects : Group): Octree[Placement] = {
+  def changeColor( oct:Octree[Placement], intersectingObject : Shape3D): Octree[Placement] = {
     oct match {
       case OcEmpty => OcEmpty
       case OcLeaf(section : Section) =>
         val l:List[Node] = section._2.map(x=>{
           val y = x
           if(x.asInstanceOf[Shape3D].getDrawMode == DrawMode.LINE) {
-            if (intersectingObject.getBoundsInParent().intersects(x.getBoundsInParent) && x.asInstanceOf[Shape3D].getMaterial != yellowMaterial) {
+            if (intersectingObject.getBoundsInParent().intersects(x.getBoundsInParent) ) {
               y.asInstanceOf[Shape3D].setMaterial(yellowMaterial)
-              worldObjects.getChildren.remove(x)
-              worldObjects.getChildren.add(y)
+
 
             }
             else {
               if (x.asInstanceOf[Shape3D].getMaterial != redMaterial) {
                 y.asInstanceOf[Shape3D].setMaterial((redMaterial))
-                worldObjects.getChildren.remove(x)
-                worldObjects.getChildren.add(y)
+
               }
             }
           }
           y
         })
         OcLeaf(section._1,l)
-      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode(coords, changeColor(up_00,intersectingObject, worldObjects),changeColor(up_01,intersectingObject, worldObjects),changeColor(up_10, intersectingObject, worldObjects),
-        changeColor(up_11,intersectingObject ,worldObjects),changeColor(down_00, intersectingObject, worldObjects),changeColor(down_01,intersectingObject, worldObjects),changeColor(down_10,intersectingObject, worldObjects),changeColor(down_11,intersectingObject, worldObjects))
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode(coords, changeColor(up_00,intersectingObject),changeColor(up_01,intersectingObject),changeColor(up_10, intersectingObject),
+        changeColor(up_11,intersectingObject ),changeColor(down_00, intersectingObject),changeColor(down_01,intersectingObject),changeColor(down_10,intersectingObject),changeColor(down_11,intersectingObject))
 
     }
   }
 
   //T4 método 4 sobre a octree
-  def scaleOctree1(fact:Double, oct:Octree[Placement], worldObjects : Group, worldSize : Int=32):Octree[Placement] = {
-    def world = new Box(worldSize, worldSize, worldSize)
+  def scaleOctree1(fact:Double, oct:Octree[Placement]):Octree[Placement] = {
     oct match {
       case OcEmpty => OcEmpty
       case OcLeaf(section) => if(fact==0.5||fact==2)
@@ -352,10 +377,6 @@ class Main extends Application {
           y.setScaleX(x.getScaleX*fact)
           y.setScaleY(x.getScaleY*fact)
           y.setScaleZ(x.getScaleZ*fact)
-          worldObjects.getChildren.remove(x)
-          if(world.getHeight()==32&&world.getBoundsInParent().contains(y.getBoundsInParent)) {
-            worldObjects.getChildren.add(y)
-          }
           y
         })
         OcLeaf(s,l)
@@ -364,30 +385,27 @@ class Main extends Application {
         OcLeaf(section)
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
         val c:Placement = (coords._1, coords._2*fact)
-        OcNode(c, scaleOctree1(fact, up_00, worldObjects), scaleOctree1(fact, up_01, worldObjects), scaleOctree1(fact, up_10, worldObjects),
-          scaleOctree1(fact, up_11, worldObjects), scaleOctree1(fact, down_00, worldObjects), scaleOctree1(fact, down_01, worldObjects), scaleOctree1(fact, down_10, worldObjects), scaleOctree1(fact, down_11, worldObjects))
+        OcNode(c, scaleOctree1(fact, up_00), scaleOctree1(fact, up_01), scaleOctree1(fact, up_10),
+          scaleOctree1(fact, up_11), scaleOctree1(fact, down_00), scaleOctree1(fact, down_01), scaleOctree1(fact, down_10), scaleOctree1(fact, down_11))
       }
     }
   }
 
   //T5 método 5 sobre a octree
-  def mapColourEffect1(func:Color=>Color, oct:Octree[Placement], worldObjs : Group): Octree[Placement] = {
+  def mapColourEffect1(func:Color=>Color, oct:Octree[Placement]): Octree[Placement] = {
     oct match {
       case OcEmpty => OcEmpty
       case OcLeaf(section) => section.asInstanceOf[Section]._2.map(x=>{
-
         val c=func(x.asInstanceOf[Shape3D].getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
         val m = new PhongMaterial()
         m.setDiffuseColor(c)
         x.asInstanceOf[Shape3D].setMaterial(m)
         val y = x
-        worldObjs.getChildren.remove(x)
-        worldObjs.getChildren.add(y)
         y
       })
         OcLeaf(section)
-      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode(coords, mapColourEffect1(func,up_00, worldObjs),mapColourEffect1(func,up_01, worldObjs),mapColourEffect1(func,up_10, worldObjs),
-        mapColourEffect1(func,up_11, worldObjs),mapColourEffect1(func,down_00, worldObjs),mapColourEffect1(func,down_01, worldObjs),mapColourEffect1(func,down_10, worldObjs),mapColourEffect1(func,down_11, worldObjs))
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>OcNode(coords, mapColourEffect1(func,up_00),mapColourEffect1(func,up_01),mapColourEffect1(func,up_10),
+        mapColourEffect1(func,up_11),mapColourEffect1(func,down_00),mapColourEffect1(func,down_01),mapColourEffect1(func,down_10),mapColourEffect1(func,down_11))
     }
   }
 
@@ -438,7 +456,7 @@ class Main extends Application {
 
 
 
-
+/*
   //Usado para testes
   def getOctant(octantNumber: Int, universe: Box): Box = {
     val octSize = universe.getHeight / 2
@@ -558,7 +576,7 @@ class Main extends Application {
 
   }
 
-/*
+
   // ----------------- TESTE DE OCTREE -----------------
   def hasObj(x: List[Shape3D], y:Node): Boolean = x match{
     case Nil => false
@@ -648,7 +666,7 @@ class Main extends Application {
     else OcEmpty
   }
 
-  val tree = getTree(graphics,wiredBox)
+
 
   // --------------- FIM DE TESTE DE OCTREE -------------
 */
