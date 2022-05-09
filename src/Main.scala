@@ -10,6 +10,7 @@ import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 
+import java.io.FileNotFoundException
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -76,11 +77,14 @@ class Main extends Application {
 
     // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
     val worldRoot: Group = new Group(camVolume, lineX, lineY, lineZ, wiredBox)
-
-    val l1 = Source.fromFile("conf.txt").getLines.toList
+    try {
+      val l1 = Source.fromFile("src/conf.txt").getLines.toList
+    }
+    catch{
+      case e:FileNotFoundException => println("Conf file not found")
+    }
+    val l1 = Source.fromFile("src/conf.txt").getLines.toList
     val graphics = getGraphicModels(l1)
-
-
     println(graphics)
     val mainOct = insertTrees(graphics)
     println(mainOct)
@@ -162,16 +166,21 @@ class Main extends Application {
 
   //T1
   def novoObj(s: Shape3D, a: Array[String]): Shape3D = {
-    if (a(1) == "(150,0,0)") {
-      s.setMaterial(redMaterial)
-    } else if (a(1) == "(0,255,0)") {
+    val numPattern = "[0-9]+".r
+    val getRGB = numPattern.findAllIn(a(1)).toArray
+    val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt,getRGB(1).toInt,getRGB(2).toInt))
 
-      s.setMaterial(greenMaterial)
-    } else if (a(1) == "(0,0,150)") {
-      s.setMaterial(blueMaterial)
-    } else if (a(1) == "(255,255,0)") {
-      s.setMaterial(yellowMaterial)
-    }
+    // if (a(1) == "(150,0,0)") {
+//      s.setMaterial(redMaterial)
+//    } else if (a(1) == "(0,255,0)") {
+//
+//      s.setMaterial(greenMaterial)
+//    } else if (a(1) == "(0,0,150)") {
+//      s.setMaterial(blueMaterial)
+//    } else if (a(1) == "(255,255,0)") {
+//      s.setMaterial(yellowMaterial)
+//    }
+    s.setMaterial(rgb)
     s.setTranslateX(a(2).toInt)
     s.setTranslateY(a(3).toInt)
     s.setTranslateZ(a(4).toInt)
@@ -191,10 +200,12 @@ class Main extends Application {
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
         }
-        else {
+        else if(h.startsWith("Box")) {
           val x = new Box(1, 1, 1)
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
+        } else{
+          getGraphicModels(t)
         }
       }
     }
