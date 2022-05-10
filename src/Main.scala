@@ -313,7 +313,48 @@ class Main extends Application {
       }
     }
 
+    def createPartition(placement: Placement): Box = {
+      val partition = new Box(placement._2, placement._2, placement._2)
+      partition.setTranslateX(placement._1._1)
+      partition.setTranslateY(placement._1._2)
+      partition.setTranslateZ(placement._1._3)
+      partition.setDrawMode(DrawMode.LINE)
+      partition
+    }
+
+    def isContained1(shape: Shape3D, placement: Placement): (Boolean, Placement, String) = {
+
+      val up_00 = createPartition(getPlacement(placement, "up_00")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_01 = createPartition(getPlacement(placement, "up_01")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_10 = createPartition(getPlacement(placement, "up_10")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_11 = createPartition(getPlacement(placement, "up_11")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_00 = createPartition(getPlacement(placement, "down_00")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_01 = createPartition(getPlacement(placement, "down_01")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_10 = createPartition(getPlacement(placement, "down_10")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_11 = createPartition(getPlacement(placement, "down_11")).getBoundsInParent.contains(shape.getBoundsInParent)
+
+      if (up_00)
+        (up_00, getPlacement(placement, "up_00"), "up_00")
+      else if (up_01)
+        (up_01, getPlacement(placement, "up_01"), "up_01")
+      else if (up_10)
+        (up_10, getPlacement(placement, "up_10"), "up_10")
+      else if (up_11)
+        (up_11, getPlacement(placement, "up_11"), "up_11")
+      else if (down_00)
+        (down_00, getPlacement(placement, "down_00"), "down_00")
+      else if (down_01)
+        (down_01, getPlacement(placement, "down_01"), "down_01")
+      else if (down_10)
+        (down_10, getPlacement(placement, "down_10"), "down_10")
+      else if (down_11)
+        (down_11, getPlacement(placement, "down_11"), "down_11")
+      else
+        (false, ((0.0, 0.0, 0.0), 0.0), "")
+    }
+
     t match {
+
       case OcEmpty =>
         if (!isContained(shape, placement))
           OcEmpty
@@ -333,18 +374,29 @@ class Main extends Application {
           OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_10")), OcEmpty)
         else if (isContained(shape, getPlacement(placement, "down_11")))
           OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
+
         else {
-          val partition = new Box(placement._2, placement._2, placement._2)
-          partition.setTranslateX(placement._1._1)
-          partition.setTranslateY(placement._1._2)
-          partition.setTranslateZ(placement._1._3)
-          partition.setDrawMode(DrawMode.LINE)
-          OcLeaf((placement, List(shape, partition)))
+          OcLeaf((placement, List(shape, createPartition(placement))))
         }
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        if(up_00.isInstanceOf[OcLeaf[Placement,Section]]&&up_00.asInstanceOf[OcLeaf[Placement,Section]].section._1==coords ) {
-          up_00
+        if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1) == false) {
+          val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
+          OcLeaf(s)
+          val o: Octree[Placement] = OcNode(coords,
+            OcLeaf(s),
+            insertTree(shape, up_01, getPlacement(placement, "up_01")),
+            insertTree(shape, up_10, getPlacement(placement, "up_10")),
+            insertTree(shape, up_11, getPlacement(placement, "up_11")),
+            insertTree(shape, down_00, getPlacement(placement, "down_00")),
+            insertTree(shape, down_01, getPlacement(placement, "down_01")),
+            insertTree(shape, down_10, getPlacement(placement, "down_10")),
+            insertTree(shape, down_11, getPlacement(placement, "down_11")))
+
+          if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
+            o.asInstanceOf[OcNode[Placement]].up_00
+          else
+            o
         }
         else
           OcNode(coords,
@@ -357,33 +409,18 @@ class Main extends Application {
             insertTree(shape, down_10, getPlacement(placement, "down_10")),
             insertTree(shape, down_11, getPlacement(placement, "down_11")))
 
+
       case OcLeaf(section: Section) =>
         if (isContained(shape, section._1)) {
-          val newList: List[Node] = section._2 :+ shape
+          val newList: List[Node] = section._2.concat(List(shape))
           val newSection = new Section(section._1, newList)
           OcLeaf(newSection)
         }
-        else {
-          val placement1 = section._1
-          val p: Placement = ((placement1._1._1 * 2 * 2, placement1._1._2 * 2 * 2, placement1._1._3 * 2 * 2), placement1._2 * 2 * 2)
-
-          if (isContained(shape, getPlacement(p, "up_00"))) {
-            val n: List[Shape3D] = section._2.map(x => x.asInstanceOf[Shape3D]).filter(x => x.getDrawMode != DrawMode.LINE):+shape
-            val newPlacement: Placement = getPlacement(((0.0, 0.0, 0.0), 32), "up_00")
-
-            val partition = new Box(newPlacement._2, newPlacement._2, newPlacement._2)
-            partition.setTranslateX(newPlacement._1._1)
-            partition.setTranslateY(newPlacement._1._2)
-            partition.setTranslateZ(newPlacement._1._3)
-            partition.setDrawMode(DrawMode.LINE)
-           // println("Cria"+OcLeaf((newPlacement, n.concat(List(partition)))))
-            OcLeaf((newPlacement, n.concat(List(partition))))
-          }
-          else
-            OcLeaf(section)
-        }
+        else
+          OcLeaf(section)
     }
   }
+
 
   //método T3
   def changeColor(oct: Octree[Placement], intersectingObject: Shape3D): Octree[Placement] = {
