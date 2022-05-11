@@ -10,7 +10,8 @@ import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 
-import java.io.FileNotFoundException
+import java.io
+import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.language.postfixOps
 
@@ -86,8 +87,15 @@ class Main extends Application {
     val l1 = Source.fromFile("src/conf.txt").getLines.toList
     val graphics = getGraphicModels(l1)
     println(graphics)
+    //saveGraphicModelsState(graphics)
     val mainOct = insertTrees(graphics)
+
+    saveGraphicModelsState(getTreeGraphics(mainOct, List[Shape3D]()))
+    val listOb:List[Shape3D] = Nil
+    //val listTeste = camVolume.asInstanceOf[Shape3D] :: listOb
+    println(getTreeGraphics(mainOct, listOb))
     println(mainOct)
+
 
     // val worldFromTextRoot: Group = getTextGroup(graphics,worldRoot)
 
@@ -160,6 +168,9 @@ class Main extends Application {
   }
 
   override def stop(): Unit = {
+    println("Saving progress..")
+    //saveGraphicModelsState(getTreeGraphics(mainOct)) // não consegue ter o valor de mainOct porque está dentro da def start()
+    println("Progess saved!")
     println("stopped")
   }
 
@@ -209,6 +220,43 @@ class Main extends Application {
         }
       }
     }
+  }
+
+
+  def saveGraphicModelsState(l:List[Shape3D]): Unit ={
+    val file = new File("src/teste.txt")
+    val bw = new BufferedWriter(new FileWriter(file))
+
+    def saveModel(lst:List[Shape3D]): List[String] = {
+      lst match {
+        case Nil => Nil
+        case h::t => {
+          val color = h.getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor
+          val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen *255).toInt.toString, (color.getBlue*255).toInt.toString + ")")
+          val colorString = colorRGB.mkString(",")
+          val shp = h.toString.split("@")
+          println(h.toString)
+          val args = List(shp(0),colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
+          val objLine = args.mkString(" ")
+          objLine::saveModel(t)
+        }
+      }
+    }
+    val objLines = saveModel(l).mkString("\n")
+    bw.write(objLines)
+    bw.close()
+  }
+
+  def getTreeGraphics(oc: Octree[Placement], lst: List[Shape3D]): List[Shape3D] = {
+
+    oc match {
+      case OcEmpty => Nil
+      case OcLeaf(section: Section) =>
+        section._2.map(x =>  x.asInstanceOf[Shape3D] :: lst)
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
+        getTreeGraphics(up_00,lst):: getTreeGraphics(up_01,lst) :: getTreeGraphics(up_10,lst) :: getTreeGraphics(up_11,lst) :: getTreeGraphics(down_00,lst) :: getTreeGraphics(down_01,lst) ::  getTreeGraphics(down_10,lst) :: getTreeGraphics(down_11,lst)
+    }
+    lst
   }
 
   def getTextGroup(l: List[Shape3D], worldObjects: Group = new Group()): Group = {
