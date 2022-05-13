@@ -12,7 +12,11 @@ import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 
 import java.io
 import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import scala.annotation.tailrec
 import scala.io.Source
+import scala.io.StdIn.readLine
 import scala.language.postfixOps
 
 class Main extends Application {
@@ -78,13 +82,15 @@ class Main extends Application {
 
     // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
     val worldRoot: Group = new Group(camVolume, lineX, lineY, lineZ, wiredBox)
-    try {
+
+    /*try {
       val l1 = Source.fromFile("src/conf.txt").getLines.toList
     }
     catch{
-      case e:FileNotFoundException => println("Conf file not found")
-    }
+      case e:FileNotFoundException => println("File not found")
+    } */
     val l1 = Source.fromFile("src/conf.txt").getLines.toList
+
     val graphics = getGraphicModels(l1)
     println(graphics)
     //saveGraphicModelsState(graphics)
@@ -135,7 +141,7 @@ class Main extends Application {
     cameraView.getT.setZ(-100)
     cameraView.getT.setY(-500)
     cameraView.getCamera.setTranslateZ(-50)
-    cameraView.startViewing
+    cameraView.startViewing()
 
     // Position of the CameraView: Right-bottom corner
     StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
@@ -160,7 +166,7 @@ class Main extends Application {
     //setup and start the Stage
     stage.setTitle("PPM Project 21/22")
     stage.setScene(scene)
-    stage.show
+    stage.show()
 
   }
 
@@ -202,7 +208,9 @@ class Main extends Application {
     s
   }
 
+
   def getGraphicModels(l: List[String]): List[Shape3D] = {
+
     l match {
       case Nil => Nil
       case h :: t => {
@@ -225,18 +233,24 @@ class Main extends Application {
 
 
   def saveGraphicModelsState(l:List[Shape3D]): Unit ={
+
+    /*val filename = readLine("Type the filename to save the state: \n")
+    println(filename)
+    val tStampRaw = LocalDateTime.now()
+    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(tStampRaw)
+
+    val file = new File("src/" + filename + "_" + tStamp +".txt")   */                      //Ativar quando for chamada apenas na última iteração
     val file = new File("src/teste.txt")
     val bw = new BufferedWriter(new FileWriter(file))
-
     def saveModel(lst:List[Shape3D]): List[String] = {
       lst match {
         case Nil => Nil
         case h::t => {
-          if(h.getMaterial().asInstanceOf[PhongMaterial] == null) {
+          if(h.getMaterial.asInstanceOf[PhongMaterial] == null) {
             saveModel(t)
           }
           else {
-            val color = h.getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor
+            val color = h.getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor
             val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen * 255).toInt.toString, (color.getBlue * 255).toInt.toString + ")")
             val colorString = colorRGB.mkString(",")
             val shp = h.toString.split("@")
@@ -405,35 +419,44 @@ class Main extends Application {
       else
         (false, ((0.0, 0.0, 0.0), 0.0), "")
     }
+      t match {
 
-    t match {
+        case OcEmpty =>
+          if (!isContained(shape, placement))
+            OcEmpty
+          /*else if(shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_00")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_01")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_10")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_11")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_00")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_01")).getBoundsInParent) ||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_10")).getBoundsInParent)||
+                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_11")).getBoundsInParent)
+        )
+          OcLeaf((placement, List(shape, createPartition(placement))))*/
+          else if (isContained(shape, getPlacement(placement, "up_00")))
+            OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "up_01")))
+            OcNode(placement, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_01")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "up_10")))
+            OcNode(placement, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_10")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "up_11")))
+            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_11")), OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "down_00")))
+            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_00")), OcEmpty, OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "down_01")))
+            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_01")), OcEmpty, OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "down_10")))
+            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_10")), OcEmpty)
+          else if (isContained(shape, getPlacement(placement, "down_11")))
+            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
 
-      case OcEmpty =>
-        if (!isContained(shape, placement))
-          OcEmpty
-        else if (isContained(shape, getPlacement(placement, "up_00")))
-          OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "up_01")))
-          OcNode(placement, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_01")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "up_10")))
-          OcNode(placement, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_10")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "up_11")))
-          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_11")), OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "down_00")))
-          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_00")), OcEmpty, OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "down_01")))
-          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_01")), OcEmpty, OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "down_10")))
-          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_10")), OcEmpty)
-        else if (isContained(shape, getPlacement(placement, "down_11")))
-          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
+          else {
+            OcLeaf((placement, List(shape, createPartition(placement))))
+          }
 
-        else {
-          OcLeaf((placement, List(shape, createPartition(placement))))
-        }
-
-      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1) == false) {
+        case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
+          /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
           val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
           OcLeaf(s)
           val o: Octree[Placement] = OcNode(coords,
@@ -445,35 +468,67 @@ class Main extends Application {
             insertTree(shape, down_01, getPlacement(placement, "down_01")),
             insertTree(shape, down_10, getPlacement(placement, "down_10")),
             insertTree(shape, down_11, getPlacement(placement, "down_11")))
-
+          // verificar se o placement do nó são iguais às coordenadas da ocleaf
           if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
             o.asInstanceOf[OcNode[Placement]].up_00
           else
             o
         }
-        else
-          OcNode(coords,
-            insertTree(shape, up_00, getPlacement(placement, "up_00")),
-            insertTree(shape, up_01, getPlacement(placement, "up_01")),
-            insertTree(shape, up_10, getPlacement(placement, "up_10")),
-            insertTree(shape, up_11, getPlacement(placement, "up_11")),
-            insertTree(shape, down_00, getPlacement(placement, "down_00")),
-            insertTree(shape, down_01, getPlacement(placement, "down_01")),
-            insertTree(shape, down_10, getPlacement(placement, "down_10")),
-            insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        else */
+          /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
+          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
+          ) {
+          println(shape.getBoundsInParent)
+          println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
+          val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
+          OcLeaf(s)
+        } else*/
 
+          if (isContained(shape, getPlacement(placement, "down_00")) ||
+            isContained(shape, getPlacement(placement, "down_01")) ||
+            isContained(shape, getPlacement(placement, "down_10")) ||
+            isContained(shape, getPlacement(placement, "down_11")) ||
+            isContained(shape, getPlacement(placement, "up_01")) ||
+            isContained(shape, getPlacement(placement, "up_10")) ||
+            isContained(shape, getPlacement(placement, "up_11")) ||
+            isContained(shape, getPlacement(placement, "up_00"))
+          ) {
+            OcNode(coords,
+              insertTree(shape, up_00, getPlacement(placement, "up_00")),
+              insertTree(shape, up_01, getPlacement(placement, "up_01")),
+              insertTree(shape, up_10, getPlacement(placement, "up_10")),
+              insertTree(shape, up_11, getPlacement(placement, "up_11")),
+              insertTree(shape, down_00, getPlacement(placement, "down_00")),
+              insertTree(shape, down_01, getPlacement(placement, "down_01")),
+              insertTree(shape, down_10, getPlacement(placement, "down_10")),
+              insertTree(shape, down_11, getPlacement(placement, "down_11")))
+          } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
+            val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
+            if (nodeObjs.isEmpty){ // Se ainda não existiam modelos gráficos na dependência do nó
+              val a = new Section(coords, List(shape, createPartition(coords)))
+              OcLeaf(a)
+            }else {// Se ainda já existiam modelos gráficos na dependência do nó
+              val s = new Section(coords, List(shape).concat(nodeObjs)) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
+              OcLeaf(s) // o OcNode recebido para se inserir o modelo gráfico, é retornado como folha
+            }
+          }
 
-      case OcLeaf(section: Section) =>
-        if (isContained(shape, section._1)) {
-          val newList: List[Node] = section._2.concat(List(shape))
-          val newSection = new Section(section._1, newList)
-          OcLeaf(newSection)
-        }
-        else
-          OcLeaf(section)
-    }
+        case OcLeaf(section: Section) =>
+          if (isContained(shape, section._1)) {
+            val newList: List[Node] = section._2.concat(List(shape))
+            val newSection = new Section(section._1, newList)
+            OcLeaf(newSection)
+          }
+          else
+            OcLeaf(section)
+      }
   }
-
 
   //método T3
   def changeColor(oct: Octree[Placement], intersectingObject: Shape3D): Octree[Placement] = {
@@ -483,7 +538,7 @@ class Main extends Application {
         val l: List[Node] = section._2.map(x => {
           val y = x
           if (x.asInstanceOf[Shape3D].getDrawMode == DrawMode.LINE) {
-            if (intersectingObject.getBoundsInParent().intersects(x.getBoundsInParent)) {
+            if (intersectingObject.getBoundsInParent.intersects(x.getBoundsInParent)) {
               y.asInstanceOf[Shape3D].setMaterial(yellowMaterial)
             }
             else {
@@ -581,7 +636,6 @@ class Main extends Application {
     Color.rgb((c.getRed * 255).toInt, 0, (c.getBlue * 255).toInt)
   }
 
-
   //Usado para testes
   def getPlacement(orig: Placement, pos: String): Placement = {
     val newSize = orig._2 / 2
@@ -606,8 +660,6 @@ class Main extends Application {
     }
 
   }
-
-
 
   /*
     //Usado para testes
