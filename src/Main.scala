@@ -510,11 +510,29 @@ class Main extends Application {
               insertTree(shape, down_11, getPlacement(placement, "down_11")))
           } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
             val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
+            def novaParti(plc: Placement): Shape3D = {
+              if(coords._2 == 32){
+              createPartition((coords._1._1 + coords._2/2, coords._1._2 + coords._2/2, coords._1._3 + coords._2/2), coords._2)
+            } else{
+                createPartition(coords)
+              }
+            }
+            val novap = novaParti(coords)
             if (nodeObjs.isEmpty){ // Se ainda não existiam modelos gráficos na dependência do nó
-              val a = new Section(coords, List(shape, createPartition(coords)))
+              val a = new Section(coords, List(shape,novap))
               OcLeaf(a)
             }else {// Se ainda já existiam modelos gráficos na dependência do nó
-              val s = new Section(coords, List(shape).concat(nodeObjs)) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
+               def removeSmallPartitions(l:List[Shape3D]): List[Shape3D] ={
+                 l match{
+                   case Nil => Nil
+                   case h::t => if(h.getDrawMode == DrawMode.LINE){
+                     removeSmallPartitions(t)
+                   } else{
+                     h::removeSmallPartitions(t)
+                   }
+                 }
+               }
+              val s = new Section(coords, List(shape,novap).concat((removeSmallPartitions(nodeObjs)))) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
               OcLeaf(s) // o OcNode recebido para se inserir o modelo gráfico, é retornado como folha
             }
           }
