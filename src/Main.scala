@@ -9,15 +9,25 @@ import javafx.stage.Stage
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
+import scala.io.StdIn.readLine
 
-import java.io
+
+import java.io._
 import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
+import scala.io.Source
+import scala.language.postfixOps
+
+
+import java.io.IOException
+import java.nio.file.DirectoryIteratorException
+import java.nio.file.DirectoryStream
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import scala.annotation.tailrec
-import scala.io.Source
-import scala.io.StdIn.readLine
-import scala.language.postfixOps
+
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 class Main extends Application {
   //TEST
@@ -48,126 +58,284 @@ class Main extends Application {
   /*
     Additional information about JavaFX basic concepts (e.g. Stage, Scene) will be provided in week7
    */
+
+  def showFilesNameFromDirectory(): Unit = {
+     try {
+       val stream = Files.newDirectoryStream(Paths.get("src/"))
+       stream.forEach(file => {
+         if (file.getFileName.toFile.toString.endsWith(".txt"))
+           println(file.getFileName.toFile.toString)
+       })
+     }
+     catch {
+       case ex@(_: IOException | _: DirectoryIteratorException) =>
+         System.err.println(ex)
+     }
+  }
+
+
+  def getUserInput(): String = readLine.trim.toLowerCase
+
+  def applyScale(oct: Octree[Placement]): Octree[Placement] = {
+    println("Which is the factor to be applied? \n 1 - Factor 0.5 or 2 - Factor 2 \n")
+    val userInput = getUserInput()
+    userInput match {
+      case "1" => scaleOctree(0.5, oct)
+      case "2" => scaleOctree(2, oct)
+      case _ => {
+        println("Invalid option! Please choose 1 or 2")
+        applyScale(oct)
+      }
+    }
+  }
+
+  def applyMapColour(oct: Octree[Placement]): Octree[Placement] = {
+    println("Which is the function to be applied? \n 1 - RemoveGreenComponent or 2 - Sepia \n")
+    val userInput = getUserInput()
+    userInput match {
+      case "1" => mapColourEffect(removeGreenComponent, oct)
+      case "2" => mapColourEffect(sepia, oct)
+      case _ => {
+        println("Invalid option! Please choose 1 or 2")
+        applyMapColour(oct)
+      }
+    }
+  }
+
+  def validation(min: Int, max: Int): Int = {
+    val userInput = getUserInput()
+    if (userInput.matches("(0?[0-9]{1,2}|1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])"))
+      userInput.toInt
+    else {
+      println("Incorrect value! Please choose a number between 0 and 255")
+      validation(min, max)
+    }
+  }
+
+  def confObject(lst: String): String = {
+    println("Which is the value of the red component of the colour? Please choose a number between 0 and 255\n")
+    val r = validation(0, 256)
+    println("Which is the value of the green component of the colour? Please choose a number between 0 and 255\n")
+    val g = validation(0, 256)
+    println("Which is the value of the blue component of the colour? Please choose a number between 0 and 255\n")
+    val b = validation(0, 256)
+    println("Which is the value of the translate of x?Type a number between 0 and 255\n")
+    val translX = validation(0, 100)
+    println("Which is the value of the translate of y?Type a number between 0 and 255\n")
+    val translY = validation(0, 100)
+    println("Which is the value of the translate of z?Type a number between 0 and 255\n")
+    val translZ = validation(0, 100)
+    println("Which is the value of the translate of x?Type a number between 0 and 255\n")
+    val escX = validation(0, 100)
+    println("Which is the value of the translate of y?Type a number between 0 and 255\n")
+    val escY = validation(0, 100)
+    println("Which is the value of the translate of z?Type a number between 0 and 255\n")
+    val escZ = validation(0, 100)
+
+    val colorRGB = List("(" + r, g, b + ")")
+    val colorString = colorRGB.mkString(",")
+    val shp = lst.split("@")
+    val args = List(lst, colorString, translX.toString, translY.toString, translZ.toString, escX.toString, escY.toString, escZ.toString)
+    val objLine = args.mkString(" ")
+    println("Obj Line " + objLine)
+    objLine
+  }
+
+  def createObject(): String = {
+    println("Which is the type of the object? 1 - Box or 2 - Cylinder\n")
+    val userInput = getUserInput()
+    userInput match {
+      case "1" => {
+        confObject("Box")
+      }
+      case "2" => {
+        confObject("Cylinder")
+      }
+      case _ => {
+        println("Please choose a valid option!")
+        createObject()
+      }
+    }
+  }
+
+
   override def start(stage: Stage): Unit = {
 
     //Get and print program arguments (args: Array[String])
     val params = getParameters
     println("Program arguments:" + params.getRaw)
 
+    def menu() {
 
-    //3D objects
-    val lineX = new Line(0, 0, 200, 0)
-    lineX.setStroke(Color.GREEN)
+      println("Type the name of the configuration file \n")
+      showFilesNameFromDirectory()
+      val fileName = getUserInput()
+      try {
+        val l1 = Source.fromFile("src/"+fileName).getLines.toList
+        val graphics = getGraphicModels(l1)
+        val main = insertTrees(graphics)
+        menuOptions(graphics, main)
 
-    val lineY = new Line(0, 0, 0, 200)
-    lineY.setStroke(Color.YELLOW)
+        def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]) {
+          println(" Menu\n " +
+            "1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Lunch 3D environment\n 5 - Exit \n")
+          val userInput = getUserInput()
 
-    val lineZ = new Line(0, 0, 200, 0)
-    lineZ.setStroke(Color.LIGHTSALMON)
-    lineZ.getTransforms().add(new Rotate(-90, 0, 0, 0, Rotate.Y_AXIS))
+          userInput match {
+            case "1" => {
+              val l = List(createObject())
+              val objects: List[Shape3D] = graphics.concat(getGraphicModels(l))
+              val oct = insertTrees(objects)
+              menuOptions(objects, oct)
+            }
+            case "2" => {
+              menuOptions(graphics, applyScale(mainOct))
+            }
+            case "3" => {
+              menuOptions(graphics, applyMapColour(mainOct))
+            }
+            case "4" => {
+              println("Do you want to save the state of the octree? 1 - Yes or 2 - No")
+              val userInput = getUserInput()
 
-    val camVolume = new Cylinder(10, 50, 10)
-    camVolume.setTranslateX(1)
-    camVolume.getTransforms().add(new Rotate(45, 0, 0, 0, Rotate.X_AXIS))
-    camVolume.setMaterial(blueMaterial)
-    camVolume.setDrawMode(DrawMode.LINE)
-
-    val wiredBox = new Box(32, 32, 32)
-    wiredBox.setTranslateX(16)
-    wiredBox.setTranslateY(16)
-    wiredBox.setTranslateZ(16)
-    wiredBox.setMaterial(redMaterial)
-    wiredBox.setDrawMode(DrawMode.LINE)
-
-
-    // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
-    val worldRoot: Group = new Group(camVolume, lineX, lineY, lineZ, wiredBox)
-
-    /*try {
-      val l1 = Source.fromFile("src/conf.txt").getLines.toList
+              userInput match {
+                case "1" => {
+                  saveGraphicModelsState(graphics)
+                  iniciar(mainOct)
+                }
+                case _ => {
+                  println("Please choose a valid option!")
+                  menuOptions(graphics, mainOct)
+                }
+              }
+            }
+            case "5" => sys.exit()
+            case _ => {
+              println("Please choose a valid option!")
+              menuOptions(graphics, mainOct)
+            }
+          }
+        }
+      }
+      catch {
+        case e: FileNotFoundException => println(fileName + " file not found")
+          println("Do you want to choose another file? 1 - Yed or 2 - No\n")
+          val userInput = getUserInput()
+          userInput match {
+            case "1" => menu()
+            case "2" => sys.exit()
+            case _ => {
+              println("Invalid option! Please choose 1 or 2")
+              menu()
+            }
+          }
+      }
     }
-    catch{
-      case e:FileNotFoundException => println("File not found")
-    } */
-    val l1 = Source.fromFile("src/conf.txt").getLines.toList
-
-    val graphics = getGraphicModels(l1)
-    println(graphics)
-    //saveGraphicModelsState(graphics)
-    val mainOct = insertTrees(graphics)
-
-    //saveGraphicModelsState(getTreeGraphics(mainOct))
-    val listOb:List[Shape3D] = Nil
-    //val listTeste = camVolume.asInstanceOf[Shape3D] :: listOb
-    println(getTreeGraphics(mainOct))
-    println(mainOct)
+    menu()
 
 
-    // val worldFromTextRoot: Group = getTextGroup(graphics,worldRoot)
+    def iniciar(oct: Octree[Placement]) {
+      //3D objects
+      val lineX = new Line(0, 0, 200, 0)
+      lineX.setStroke(Color.GREEN)
 
-    addToWorld(mainOct, worldRoot)
-    changeColor(mainOct, camVolume)
-    //scaleOctree(0.5, mainOct)
-    //mapColourEffect(sepia, mainOct)
+      val lineY = new Line(0, 0, 0, 200)
+      lineY.setStroke(Color.YELLOW)
+
+      val lineZ = new Line(0, 0, 200, 0)
+      lineZ.setStroke(Color.LIGHTSALMON)
+      lineZ.getTransforms().add(new Rotate(-90, 0, 0, 0, Rotate.Y_AXIS))
+
+      val camVolume = new Cylinder(10, 50, 10)
+      camVolume.setTranslateX(1)
+      camVolume.getTransforms().add(new Rotate(45, 0, 0, 0, Rotate.X_AXIS))
+      camVolume.setMaterial(blueMaterial)
+      camVolume.setDrawMode(DrawMode.LINE)
+
+      val wiredBox = new Box(32, 32, 32)
+      wiredBox.setTranslateX(16)
+      wiredBox.setTranslateY(16)
+      wiredBox.setTranslateZ(16)
+      wiredBox.setMaterial(redMaterial)
+      wiredBox.setDrawMode(DrawMode.LINE)
+
+      val box = new Box(10, 10, 10)
+      box.setTranslateX(10)
+      box.setTranslateY(12)
+      box.setTranslateZ(10)
+      box.setMaterial(yellowMaterial)
+      box.setDrawMode(DrawMode.LINE)
+      val box1 = new Box(16, 16, 16)
+      box1.setTranslateX(8)
+      box1.setTranslateY(8)
+      box1.setTranslateZ(8)
+      box1.setMaterial(yellowMaterial)
+      box1.setDrawMode(DrawMode.LINE)
 
 
-    // Camera
-    val camera = new PerspectiveCamera(true)
+      // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
+      val worldRoot: Group = new Group(camVolume, lineX, lineY, lineZ, wiredBox)
 
-    val cameraTransform = new CameraTransformer
-    cameraTransform.setTranslate(0, 0, 0)
-    cameraTransform.getChildren.add(camera)
-    camera.setNearClip(0.1)
-    camera.setFarClip(10000.0)
+      addToWorld(oct, worldRoot)
 
-    camera.setTranslateZ(-500)
-    camera.setFieldOfView(20)
-    cameraTransform.ry.setAngle(-45.0)
-    cameraTransform.rx.setAngle(-45.0)
-    worldRoot.getChildren.add(cameraTransform)
+      changeColor(oct, camVolume)
 
-    // SubScene - composed by the nodes present in the worldRoot
-    val subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED)
-    subScene.setFill(Color.DARKSLATEGRAY)
-    subScene.setCamera(camera)
+      // Camera
+      val camera = new PerspectiveCamera(true)
+
+      val cameraTransform = new CameraTransformer
+      cameraTransform.setTranslate(0, 0, 0)
+      cameraTransform.getChildren.add(camera)
+      camera.setNearClip(0.1)
+      camera.setFarClip(10000.0)
+
+      camera.setTranslateZ(-500)
+      camera.setFieldOfView(20)
+      cameraTransform.ry.setAngle(-45.0)
+      cameraTransform.rx.setAngle(-45.0)
+      worldRoot.getChildren.add(cameraTransform)
+
+      // SubScene - composed by the nodes present in the worldRoot
+      val subScene = new SubScene(worldRoot, 800, 600, true, SceneAntialiasing.BALANCED)
+      subScene.setFill(Color.DARKSLATEGRAY)
+      subScene.setCamera(camera)
 
 
-    // CameraView - an additional perspective of the environment
-    val cameraView = new CameraView(subScene)
-    cameraView.setFirstPersonNavigationEabled(true)
-    cameraView.setFitWidth(350)
-    cameraView.setFitHeight(225)
-    cameraView.getRx.setAngle(-45)
-    cameraView.getT.setZ(-100)
-    cameraView.getT.setY(-500)
-    cameraView.getCamera.setTranslateZ(-50)
-    cameraView.startViewing()
+      // CameraView - an additional perspective of the environment
+      val cameraView = new CameraView(subScene)
+      cameraView.setFirstPersonNavigationEabled(true)
+      cameraView.setFitWidth(350)
+      cameraView.setFitHeight(225)
+      cameraView.getRx.setAngle(-45)
+      cameraView.getT.setZ(-100)
+      cameraView.getT.setY(-500)
+      cameraView.getCamera.setTranslateZ(-50)
+      cameraView.startViewing
 
-    // Position of the CameraView: Right-bottom corner
-    StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
-    StackPane.setMargin(cameraView, new Insets(5))
+      // Position of the CameraView: Right-bottom corner
+      StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
+      StackPane.setMargin(cameraView, new Insets(5))
 
-    // Scene - defines what is rendered (in this case the subScene and the cameraView)
-    val root = new StackPane(subScene, cameraView)
-    subScene.widthProperty.bind(root.widthProperty)
-    subScene.heightProperty.bind(root.heightProperty)
+      // Scene - defines what is rendered (in this case the subScene and the cameraView)
+      val root = new StackPane(subScene, cameraView)
+      subScene.widthProperty.bind(root.widthProperty)
+      subScene.heightProperty.bind(root.heightProperty)
 
-    val scene = new Scene(root, 810, 610, true, SceneAntialiasing.BALANCED)
+      val scene = new Scene(root, 810, 610, true, SceneAntialiasing.BALANCED)
 
-    //Mouse left click interaction
-    scene.setOnMouseClicked((event) => {
-      camVolume.setTranslateX(camVolume.getTranslateX + 2)
-      worldRoot.getChildren.removeAll()
-      // metodo T3
-      changeColor(mainOct, camVolume)
-      saveGraphicModelsState(getTreeGraphics(mainOct))
-    })
+      //Mouse left click interaction
+      scene.setOnMouseClicked((event) => {
+        camVolume.setTranslateX(camVolume.getTranslateX + 2)
+        worldRoot.getChildren.removeAll()
+        // metodo T3
+        changeColor(oct, camVolume)
+      })
 
-    //setup and start the Stage
-    stage.setTitle("PPM Project 21/22")
-    stage.setScene(scene)
-    stage.show()
-
+      //setup and start the Stage
+      stage.setTitle("PPM Project 21/22")
+      stage.setScene(scene)
+      stage.show
+    }
   }
 
   override def init(): Unit = {
@@ -175,29 +343,26 @@ class Main extends Application {
   }
 
   override def stop(): Unit = {
-    println("Saving progress..")
-    //saveGraphicModelsState(getTreeGraphics(mainOct)) // não consegue ter o valor de mainOct porque está dentro da def start()
-    println("Progess saved!")
     println("stopped")
   }
 
-
   //T1
   def novoObj(s: Shape3D, a: Array[String]): Shape3D = {
+
     val numPattern = "[0-9]+".r
     val getRGB = numPattern.findAllIn(a(1)).toArray
-    val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt,getRGB(1).toInt,getRGB(2).toInt))
+    val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
 
     // if (a(1) == "(150,0,0)") {
-//      s.setMaterial(redMaterial)
-//    } else if (a(1) == "(0,255,0)") {
-//
-//      s.setMaterial(greenMaterial)
-//    } else if (a(1) == "(0,0,150)") {
-//      s.setMaterial(blueMaterial)
-//    } else if (a(1) == "(255,255,0)") {
-//      s.setMaterial(yellowMaterial)
-//    }
+    //      s.setMaterial(redMaterial)
+    //    } else if (a(1) == "(0,255,0)") {
+    //
+    //      s.setMaterial(greenMaterial)
+    //    } else if (a(1) == "(0,0,150)") {
+    //      s.setMaterial(blueMaterial)
+    //    } else if (a(1) == "(255,255,0)") {
+    //      s.setMaterial(yellowMaterial)
+    //    }
     s.setMaterial(rgb)
     s.setTranslateX(a(2).toInt)
     s.setTranslateY(a(3).toInt)
@@ -220,51 +385,52 @@ class Main extends Application {
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
         }
-        else if(h.startsWith("Box")) {
+        else if (h.startsWith("Box")) {
           val x = new Box(1, 1, 1)
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
-        } else{
+        } else {
           getGraphicModels(t)
         }
       }
     }
   }
 
-
-  def saveGraphicModelsState(l:List[Shape3D]): Unit ={
-
-    /*val filename = readLine("Type the filename to save the state: \n")
-    println(filename)
-    val tStampRaw = LocalDateTime.now()
-    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(tStampRaw)
-
-    val file = new File("src/" + filename + "_" + tStamp +".txt")   */                      //Ativar quando for chamada apenas na última iteração
-    val file = new File("src/teste.txt")
-    val bw = new BufferedWriter(new FileWriter(file))
-    def saveModel(lst:List[Shape3D]): List[String] = {
-      lst match {
-        case Nil => Nil
-        case h::t => {
-          if(h.getMaterial.asInstanceOf[PhongMaterial] == null) {
-            saveModel(t)
-          }
-          else {
-            val color = h.getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor
-            val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen * 255).toInt.toString, (color.getBlue * 255).toInt.toString + ")")
-            val colorString = colorRGB.mkString(",")
-            val shp = h.toString.split("@")
-            //println(h.toString)
-            val args = List(shp(0), colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
-            val objLine = args.mkString(" ")
-            objLine :: saveModel(t)
-          }
+  def saveModel(lst: List[Shape3D]): List[String] = {
+    lst match {
+      case Nil => Nil
+      case h :: t => {
+        if (h.getMaterial.asInstanceOf[PhongMaterial] == null) {
+          saveModel(t)
+        }
+        else {
+          val color = h.getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor
+          val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen * 255).toInt.toString, (color.getBlue * 255).toInt.toString + ")")
+          val colorString = colorRGB.mkString(",")
+          val shp = h.toString.split("@")
+          val args = List(shp(0), colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
+          val objLine = args.mkString(" ")
+          objLine :: saveModel(t)
         }
       }
     }
-    val objLines = saveModel(l).mkString("\n")
-    bw.write(objLines)
-    bw.close()
+  }
+
+  def saveGraphicModelsState(l: List[Shape3D]): Unit = {
+    val filename = readLine("Type the filename to save the state: \n")
+    val tStampRaw = LocalDateTime.now()
+    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(tStampRaw)
+    //val file = new File("src/" + filename + "_" + tStamp +".txt")   */                      //Ativar quando for chamada apenas na última iteração
+    val file = new File("src/"+filename + "_" + ".txt")
+    try {
+      val bw = new BufferedWriter(new FileWriter(file))
+      val objLines = saveModel(l).mkString("\n")
+      bw.write(objLines)
+      bw.close()
+    }
+    catch {
+      case e: FileNotFoundException => println(file + " file not found")
+    }
   }
 
   def getTreeGraphics(oc: Octree[Placement]): List[Shape3D] = {
@@ -272,9 +438,9 @@ class Main extends Application {
     oc match {
       case OcEmpty => Nil
       case OcLeaf(section: Section) =>
-        section._2.map(x =>  x.asInstanceOf[Shape3D])
+        section._2.map(x => x.asInstanceOf[Shape3D])
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        (getTreeGraphics(up_00)::: getTreeGraphics(up_01)::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) :::  getTreeGraphics(down_10) ::: getTreeGraphics(down_11))
+        (getTreeGraphics(up_00) ::: getTreeGraphics(up_01) ::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) ::: getTreeGraphics(down_10) ::: getTreeGraphics(down_11))
     }
   }
 
@@ -419,48 +585,89 @@ class Main extends Application {
       else
         (false, ((0.0, 0.0, 0.0), 0.0), "")
     }
-      t match {
 
-        case OcEmpty =>
-          if (!isContained(shape, placement))
-            OcEmpty
-          /*else if(shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_00")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_01")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_10")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_11")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_00")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_01")).getBoundsInParent) ||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_10")).getBoundsInParent)||
-                shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_11")).getBoundsInParent)
-        )
-          OcLeaf((placement, List(shape, createPartition(placement))))*/
-          else if (isContained(shape, getPlacement(placement, "up_00")))
-            OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "up_01")))
-            OcNode(placement, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_01")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "up_10")))
-            OcNode(placement, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_10")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "up_11")))
-            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_11")), OcEmpty, OcEmpty, OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "down_00")))
-            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_00")), OcEmpty, OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "down_01")))
-            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_01")), OcEmpty, OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "down_10")))
-            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_10")), OcEmpty)
-          else if (isContained(shape, getPlacement(placement, "down_11")))
-            OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
+    t match {
 
-          else {
-            OcLeaf((placement, List(shape, createPartition(placement))))
-          }
+      case OcEmpty =>
+        if (!isContained(shape, placement))
+          OcEmpty
+        /*else if(shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_00")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_01")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_10")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_11")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_00")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_01")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_10")).getBoundsInParent)||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_11")).getBoundsInParent)
+      )
+        OcLeaf((placement, List(shape, createPartition(placement))))*/
+        else if (isContained(shape, getPlacement(placement, "up_00")))
+          OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "up_01")))
+          OcNode(placement, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_01")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "up_10")))
+          OcNode(placement, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_10")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "up_11")))
+          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "up_11")), OcEmpty, OcEmpty, OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "down_00")))
+          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_00")), OcEmpty, OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "down_01")))
+          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_01")), OcEmpty, OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "down_10")))
+          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_10")), OcEmpty)
+        else if (isContained(shape, getPlacement(placement, "down_11")))
+          OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
 
-        case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-          /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
-          val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
-          OcLeaf(s)
-          val o: Octree[Placement] = OcNode(coords,
-            OcLeaf(s),
+        else {
+          OcLeaf((placement, List(shape, createPartition(placement))))
+        }
+
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
+        /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
+        val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
+        OcLeaf(s)
+        val o: Octree[Placement] = OcNode(coords,
+          OcLeaf(s),
+          insertTree(shape, up_01, getPlacement(placement, "up_01")),
+          insertTree(shape, up_10, getPlacement(placement, "up_10")),
+          insertTree(shape, up_11, getPlacement(placement, "up_11")),
+          insertTree(shape, down_00, getPlacement(placement, "down_00")),
+          insertTree(shape, down_01, getPlacement(placement, "down_01")),
+          insertTree(shape, down_10, getPlacement(placement, "down_10")),
+          insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        // verificar se o placement do nó são iguais às coordenadas da ocleaf
+        if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
+          o.asInstanceOf[OcNode[Placement]].up_00
+        else
+          o
+      }
+      else */
+        /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
+        ) {
+        println(shape.getBoundsInParent)
+        println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
+        val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
+        OcLeaf(s)
+      } else*/
+
+        if (isContained(shape, getPlacement(placement, "down_00")) ||
+          isContained(shape, getPlacement(placement, "down_01")) ||
+          isContained(shape, getPlacement(placement, "down_10")) ||
+          isContained(shape, getPlacement(placement, "down_11")) ||
+          isContained(shape, getPlacement(placement, "up_01")) ||
+          isContained(shape, getPlacement(placement, "up_10")) ||
+          isContained(shape, getPlacement(placement, "up_11")) ||
+          isContained(shape, getPlacement(placement, "up_00"))
+        ) {
+          OcNode(coords,
+            insertTree(shape, up_00, getPlacement(placement, "up_00")),
             insertTree(shape, up_01, getPlacement(placement, "up_01")),
             insertTree(shape, up_10, getPlacement(placement, "up_10")),
             insertTree(shape, up_11, getPlacement(placement, "up_11")),
@@ -468,84 +675,26 @@ class Main extends Application {
             insertTree(shape, down_01, getPlacement(placement, "down_01")),
             insertTree(shape, down_10, getPlacement(placement, "down_10")),
             insertTree(shape, down_11, getPlacement(placement, "down_11")))
-          // verificar se o placement do nó são iguais às coordenadas da ocleaf
-          if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
-            o.asInstanceOf[OcNode[Placement]].up_00
-          else
-            o
+        } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
+          val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
+          if (nodeObjs.isEmpty) { // Se ainda não existiam modelos gráficos na dependência do nó
+            val a = new Section(coords, List(shape, createPartition(coords)))
+            OcLeaf(a)
+          } else { // Se ainda já existiam modelos gráficos na dependência do nó
+            val s = new Section(coords, List(shape).concat(nodeObjs)) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
+            OcLeaf(s) // o OcNode recebido para se inserir o modelo gráfico, é retornado como folha
+          }
         }
-        else */
-          /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
-          shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
-          ) {
-          println(shape.getBoundsInParent)
-          println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
-          val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
-          OcLeaf(s)
-        } else*/
 
-          if (isContained(shape, getPlacement(placement, "down_00")) ||
-            isContained(shape, getPlacement(placement, "down_01")) ||
-            isContained(shape, getPlacement(placement, "down_10")) ||
-            isContained(shape, getPlacement(placement, "down_11")) ||
-            isContained(shape, getPlacement(placement, "up_01")) ||
-            isContained(shape, getPlacement(placement, "up_10")) ||
-            isContained(shape, getPlacement(placement, "up_11")) ||
-            isContained(shape, getPlacement(placement, "up_00"))
-          ) {
-            OcNode(coords,
-              insertTree(shape, up_00, getPlacement(placement, "up_00")),
-              insertTree(shape, up_01, getPlacement(placement, "up_01")),
-              insertTree(shape, up_10, getPlacement(placement, "up_10")),
-              insertTree(shape, up_11, getPlacement(placement, "up_11")),
-              insertTree(shape, down_00, getPlacement(placement, "down_00")),
-              insertTree(shape, down_01, getPlacement(placement, "down_01")),
-              insertTree(shape, down_10, getPlacement(placement, "down_10")),
-              insertTree(shape, down_11, getPlacement(placement, "down_11")))
-          } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
-            val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
-            def novaParti(plc: Placement): Shape3D = {
-              if(coords._2 == 32){
-              createPartition((coords._1._1 + coords._2/2, coords._1._2 + coords._2/2, coords._1._3 + coords._2/2), coords._2)
-            } else{
-                createPartition(coords)
-              }
-            }
-            val novap = novaParti(coords)
-            if (nodeObjs.isEmpty){ // Se ainda não existiam modelos gráficos na dependência do nó
-              val a = new Section(coords, List(shape,novap))
-              OcLeaf(a)
-            }else {// Se ainda já existiam modelos gráficos na dependência do nó
-               def removeSmallPartitions(l:List[Shape3D]): List[Shape3D] ={
-                 l match{
-                   case Nil => Nil
-                   case h::t => if(h.getDrawMode == DrawMode.LINE){
-                     removeSmallPartitions(t)
-                   } else{
-                     h::removeSmallPartitions(t)
-                   }
-                 }
-               }
-              val s = new Section(coords, List(shape,novap).concat((removeSmallPartitions(nodeObjs)))) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
-              OcLeaf(s) // o OcNode recebido para se inserir o modelo gráfico, é retornado como folha
-            }
-          }
-
-        case OcLeaf(section: Section) =>
-          if (isContained(shape, section._1)) {
-            val newList: List[Node] = section._2.concat(List(shape))
-            val newSection = new Section(section._1, newList)
-            OcLeaf(newSection)
-          }
-          else
-            OcLeaf(section)
-      }
+      case OcLeaf(section: Section) =>
+        if (isContained(shape, section._1)) {
+          val newList: List[Node] = section._2.concat(List(shape))
+          val newSection = new Section(section._1, newList)
+          OcLeaf(newSection)
+        }
+        else
+          OcLeaf(section)
+    }
   }
 
   //método T3
@@ -885,4 +1034,3 @@ object FxApp {
     Application.launch(classOf[Main], args: _*)
   }
 }
-
