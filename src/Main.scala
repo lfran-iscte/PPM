@@ -1,27 +1,26 @@
 import com.sun.prism.image.Coords
 import javafx.application.Application
+import javafx.fxml.FXMLLoader
 import javafx.geometry.{Insets, Point3D, Pos}
 import javafx.scene.paint.PhongMaterial
 import javafx.scene.shape._
 import javafx.scene.transform.{Rotate, Translate}
-import javafx.scene.{Group, Node}
+import javafx.scene.{Group, Node, Parent, PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 import javafx.stage.Stage
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
-import javafx.scene.{PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
-import scala.io.StdIn.readLine
 
+import scala.io.StdIn.readLine
 import java.io
 import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.language.postfixOps
-
-
 import java.io.IOException
 import java.nio.file.DirectoryIteratorException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -59,18 +58,23 @@ class Main extends Application {
     print("\n" + s)
   }
 
-  def showFilesNameFromDirectory(): Unit = {
+  def showFilesNameFromDirectory(): Array[File] = {
     try {
-      val stream = Files.newDirectoryStream(Paths.get("src/"))
-
-      stream.forEach(file => {
-        if (file.getFileName.toFile.toString.endsWith(".txt"))
-          println(file.getFileName)
-      })
+      val file: File = new File("src/")
+      val files: Array[File] = file.listFiles
+      val txtFiles = files.filter(file => file.getName.endsWith(".txt"))
+      txtFiles
     }
     catch {
-      case ex@(_: IOException | _: DirectoryIteratorException) =>
-        System.err.println(ex)
+      case e: Exception =>
+        e.printStackTrace()
+        new Array[File](0)
+    }
+  }
+
+  def displayFiles(txtFiles: Array[File]): Unit = {
+    for (file <- txtFiles) {
+      println(" " + txtFiles.indexOf(file) + " - " + file.getName)
     }
   }
 
@@ -105,7 +109,7 @@ class Main extends Application {
 
   def validation(min: Int, max: Int): Int = {
     val userInput = getUserInput()
-    if(userInput.matches("(0?[0-9]{1,2}|1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])"))
+    if (userInput.matches("(0?[0-9]{1,2}|1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])"))
       userInput.toInt
     else {
       println("Incorrect value! Please choose a number between 0 and 255")
@@ -113,36 +117,35 @@ class Main extends Application {
     }
   }
 
-  def confObject(lst: String): String= {
+  def confObject(lst: String): String = {
     println("Which is the value of the red component of the colour? Please choose a number between 0 and 255")
     val r = validation(0, 256)
     println("Which is the value of the green component of the colour? Please choose a number between 0 and 255")
     val g = validation(0, 256)
     println("Which is the value of the blue component of the colour? Please choose a number between 0 and 255")
     val b = validation(0, 256)
-    println("Which is the value of the translate of x?Type a number between 0 and 255")
+    println("Which is the value of the translate of x?")
     val translX = validation(0, 100)
-    println("Which is the value of the translate of y?Type a number between 0 and 255")
+    println("Which is the value of the translate of y?")
     val translY = validation(0, 100)
-    println("Which is the value of the translate of z?Type a number between 0 and 255")
+    println("Which is the value of the translate of z?")
     val translZ = validation(0, 100)
-    println("Which is the value of the translate of x?Type a number between 0 and 255")
+    println("Which is the value of the translate of x?")
     val escX = validation(0, 100)
-    println("Which is the value of the translate of y?Type a number between 0 and 255")
+    println("Which is the value of the translate of y?")
     val escY = validation(0, 100)
-    println("Which is the value of the translate of z?Type a number between 0 and 255")
+    println("Which is the value of the translate of z?")
     val escZ = validation(0, 100)
 
     val colorRGB = List("(" + r, g, b + ")")
     val colorString = colorRGB.mkString(",")
-    val shp = lst.split("@")
     val args = List(lst, colorString, translX.toString, translY.toString, translZ.toString, escX.toString, escY.toString, escZ.toString)
     val objLine = args.mkString(" ")
     objLine
   }
 
   def createObject(): String = {
-    println("Which is the type of the object? 1 - Box or 2 - Cylinder")
+    println("Which is the type of the object?\n 1 - Box\n 2 - Cylinder")
     val userInput = getUserInput()
     userInput match {
       case "1" => {
@@ -157,8 +160,9 @@ class Main extends Application {
       }
     }
   }
-  def saveStateOptions():String={
-    println("Do you want to save the state of the octree? 1 - Yes or 2 - No")
+
+  def saveStateOptions(): String = {
+    println("Do you want to save the state of the octree?\n 1 - Yes\n 2 - No")
     val userInput = getUserInput()
 
     userInput match {
@@ -171,70 +175,94 @@ class Main extends Application {
   override def start(stage: Stage): Unit = {
 
     //Get and print program arguments (args: Array[String])
-    val params = getParameters
-    println("Program arguments:" + params.getRaw)
 
-    def menu() {
+    val fxmlLoader =
+      new FXMLLoader(getClass.getResource("ControllerFirstWindow.fxml"))
+    val mainViewRoot: Parent = fxmlLoader.load()
+    val scene = new Scene(mainViewRoot)
+    scene.setCamera(new PerspectiveCamera(false))
+    stage.setScene(scene)
+    stage.show()
 
-      println("Type the name of the configuration file \n")
-      showFilesNameFromDirectory()
-      val fileName = getUserInput()
-      try {
-        val l1 = Source.fromFile("src/"+fileName).getLines.toList
-        val graphics = getGraphicModels(l1)
-        val main = insertTrees(graphics)
-        menuOptions(graphics,main)
-        def menuOptions(graphics:List[Shape3D],mainOct:Octree[Placement]) {
-          println(" Menu\n " +
-            "1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Lunch 3D environment\n 5 - Exit")
-          val userInput = getUserInput()
+    /*
+    def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]) {
+      println("Menu\n" +
+        " 1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Lunch 3D environment\n 5 - Exit")
+      val userInput = getUserInput()
 
-          userInput match {
+      userInput match {
+        case "1" => {
+          val l = List(createObject())
+          val objects: List[Shape3D] = graphics.concat(getGraphicModels(l))
+          val oct = insertTrees(objects)
+          menuOptions(objects, oct)
+        }
+        case "2" => {
+          menuOptions(graphics, applyScale(mainOct))
+        }
+        case "3" => {
+          menuOptions(graphics, applyMapColour(mainOct))
+        }
+        case "4" => {
+          saveStateOptions() match {
             case "1" => {
-              val l = List(createObject())
-              val objects: List[Shape3D] = graphics.concat(getGraphicModels(l))
-              val oct = insertTrees(objects)
-              menuOptions(objects, oct)
+              saveGraphicModelsState(graphics)
+              iniciar(mainOct)
             }
-            case "2" => {
-              menuOptions(graphics,applyScale(mainOct))
-            }
+            case "2" => iniciar(mainOct)
             case "3" => {
-              menuOptions(graphics,applyMapColour(mainOct))
-            }
-            case "4" => {
-              saveStateOptions() match {
-                case "1" => {
-                  saveGraphicModelsState(graphics)
-                  iniciar(mainOct)
-                }
-                case "2" => iniciar(mainOct)
-                case "3" => {
-                  println("Please choose a valid option!")
-                  saveStateOptions()
-                }
-              }
-            }
-            case "5" => sys.exit()
-            case _ => {
               println("Please choose a valid option!")
-              menuOptions(graphics,mainOct)
+              saveStateOptions()
             }
           }
         }
+        case "5" => sys.exit()
+        case _ => {
+          println("Please choose a valid option!")
+          menuOptions(graphics, mainOct)
+        }
       }
-      catch {
-        case e: FileNotFoundException => println(fileName + " file not found")
-          println("Do you want to choose another file? 1 - Yes or 2 - No")
-          val userInput = getUserInput()
-          userInput match {
-            case "1" => menu()
-            case "2" => sys.exit()
-            case _ => {
-              println("Invalid option! Please choose 1 or 2")
-              menu()
-            }
+    }
+
+    def menu() {
+
+      if (showFilesNameFromDirectory().length == 0) {
+        println("Does not exist any configuration file on the directory")
+        val l1 = List()
+        val graphics = getGraphicModels(l1)
+        val main = insertTrees(graphics)
+        menuOptions(graphics, main)
+      }
+      else {
+        println("Type the option with the name of the configuration file ")
+        val a: Array[File] = showFilesNameFromDirectory()
+        displayFiles(a)
+        val fileName = getUserInput()
+        try {
+          if (fileName.toInt <= a.length - 1 && fileName.toInt >= 0) {
+            val l1 = Source.fromFile("src/" + a(fileName.toInt).getName).getLines.toList
+            val graphics = getGraphicModels(l1)
+            val main = insertTrees(graphics)
+            menuOptions(graphics, main)
           }
+          else {
+            println("Invalid option! Please choose a valid option!")
+            menu()
+          }
+        }
+        catch {
+          case e: FileNotFoundException => println(fileName + " file not found")
+            println("Do you want to choose another file? 1 - Yes or 2 - No")
+            val userInput = getUserInput()
+            userInput match {
+              case "1" => menu()
+              case "2" => sys.exit()
+              case _ => {
+                println("Invalid option! Please choose 1 or 2")
+                menu()
+              }
+            }
+        }
       }
     }
 
@@ -341,7 +369,7 @@ class Main extends Application {
       stage.setTitle("PPM Project 21/22")
       stage.setScene(scene)
       stage.show
-    }
+    }*/
   }
 
   override def init(): Unit = {
@@ -356,7 +384,7 @@ class Main extends Application {
   def novoObj(s: Shape3D, a: Array[String]): Shape3D = {
     val numPattern = "[0-9]+".r
     val getRGB = numPattern.findAllIn(a(1)).toArray
-    val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt,getRGB(1).toInt,getRGB(2).toInt))
+    val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
 
     // if (a(1) == "(150,0,0)") {
     //      s.setMaterial(redMaterial)
@@ -390,50 +418,63 @@ class Main extends Application {
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
         }
-        else if(h.startsWith("Box")) {
+        else if (h.startsWith("Box")) {
           val x = new Box(1, 1, 1)
           val obj = novoObj(x, arg)
           obj :: getGraphicModels(t)
-        } else{
+        } else {
           getGraphicModels(t)
         }
       }
     }
   }
 
-
-  def saveGraphicModelsState(l:List[Shape3D]): Unit ={
-
-    val filename = readLine("Type the filename to save the state: \n")
-    println(filename)
-    val tStampRaw = LocalDateTime.now()
-    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(tStampRaw)
-    val file = new File("src/" + filename + "_" +".txt")                       //Ativar quando for chamada apenas na última iteração
-    //  val file = new File("src/teste.txt")
-    val bw = new BufferedWriter(new FileWriter(file))
-    def saveModel(lst:List[Shape3D]): List[String] = {
-      lst match {
-        case Nil => Nil
-        case h::t => {
-          if(h.getMaterial.asInstanceOf[PhongMaterial] == null) {
-            saveModel(t)
-          }
-          else {
-            val color = h.getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor
-            val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen * 255).toInt.toString, (color.getBlue * 255).toInt.toString + ")")
-            val colorString = colorRGB.mkString(",")
-            val shp = h.toString.split("@")
-            //println(h.toString)
-            val args = List(shp(0), colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
-            val objLine = args.mkString(" ")
-            objLine :: saveModel(t)
-          }
+  def saveModel(lst: List[Shape3D]): List[String] = {
+    lst match {
+      case Nil => Nil
+      case h :: t => {
+        if (h.getMaterial.asInstanceOf[PhongMaterial] == null) {
+          saveModel(t)
+        }
+        else {
+          val color = h.getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor
+          val colorRGB = List("(" + (color.getRed * 255).toInt.toString, (color.getGreen * 255).toInt.toString, (color.getBlue * 255).toInt.toString + ")")
+          val colorString = colorRGB.mkString(",")
+          val shp = h.toString.split("@")
+          //println(h.toString)
+          val args = List(shp(0), colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
+          val objLine = args.mkString(" ")
+          objLine :: saveModel(t)
         }
       }
     }
-    val objLines = saveModel(l).mkString("\n")
-    bw.write(objLines)
-    bw.close()
+  }
+
+  def saveGraphicModelsState(l: List[Shape3D]): Unit = {
+    val filename = readLine("Type the filename to save the state: \n")
+    println(filename)
+    val tStampRaw = LocalDateTime.now()
+    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(tStampRaw)
+    val file = new File("src/" + filename + "_" + tStamp + ".txt")
+    try {
+      val bw = new BufferedWriter(new FileWriter(file))
+      val objLines = saveModel(l).mkString("\n")
+      bw.write(objLines)
+      bw.close()
+    }
+    catch {
+      case e: FileNotFoundException => println(file + "It is not possible to create the file")
+        println("Do you want to try again? 1 - Yes or 2 - No")
+        val userInput = getUserInput()
+        userInput match {
+          case "1" => saveGraphicModelsState(l)
+          case "2" => sys.exit()
+          case _ => {
+            println("Invalid option! Please choose 1 or 2")
+            saveGraphicModelsState(l)
+          }
+        }
+    }
   }
 
   def getTreeGraphics(oc: Octree[Placement]): List[Shape3D] = {
@@ -441,9 +482,9 @@ class Main extends Application {
     oc match {
       case OcEmpty => Nil
       case OcLeaf(section: Section) =>
-        section._2.map(x =>  x.asInstanceOf[Shape3D])
+        section._2.map(x => x.asInstanceOf[Shape3D])
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        (getTreeGraphics(up_00)::: getTreeGraphics(up_01)::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) :::  getTreeGraphics(down_10) ::: getTreeGraphics(down_11))
+        (getTreeGraphics(up_00) ::: getTreeGraphics(up_01) ::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) ::: getTreeGraphics(down_10) ::: getTreeGraphics(down_11))
     }
   }
 
@@ -588,6 +629,7 @@ class Main extends Application {
       else
         (false, ((0.0, 0.0, 0.0), 0.0), "")
     }
+
     t match {
 
       case OcEmpty =>
@@ -679,10 +721,10 @@ class Main extends Application {
             insertTree(shape, down_11, getPlacement(placement, "down_11")))
         } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
           val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
-          if (nodeObjs.isEmpty){ // Se ainda não existiam modelos gráficos na dependência do nó
+          if (nodeObjs.isEmpty) { // Se ainda não existiam modelos gráficos na dependência do nó
             val a = new Section(coords, List(shape, createPartition(coords)))
             OcLeaf(a)
-          }else {// Se ainda já existiam modelos gráficos na dependência do nó
+          } else { // Se ainda já existiam modelos gráficos na dependência do nó
             val s = new Section(coords, List(shape).concat(nodeObjs)) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
             OcLeaf(s) // o OcNode recebido para se inserir o modelo gráfico, é retornado como folha
           }
