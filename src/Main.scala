@@ -350,12 +350,21 @@ class Main extends Application {
     val getRGB = numPattern.findAllIn(a(1)).toArray
     val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
     s.setMaterial(rgb)
+    if (a.length == 8){
     s.setTranslateX(a(2).toInt)
     s.setTranslateY(a(3).toInt)
     s.setTranslateZ(a(4).toInt)
     s.setScaleX(a(5).toInt)
     s.setScaleY(a(6).toInt)
-    s.setScaleZ(a(7).toInt)
+    s.setScaleZ(a(7).toInt)}
+    else{
+      s.setTranslateX(0)
+      s.setTranslateY(0)
+      s.setTranslateZ(0)
+      s.setScaleX(1)
+      s.setScaleY(1)
+      s.setScaleZ(1)
+    }
     s
   }
 
@@ -513,10 +522,23 @@ class Main extends Application {
   }
 
   def insertTrees(g: List[Shape3D], oct: Octree[Placement] = new OcNode[Placement](((0, 0, 0), 32.0), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty), placement: Placement = ((0, 0, 0), 32.0)): Octree[Placement] = {
+
+    def isContained(shape: Shape3D, placement: Placement): Boolean = {
+      val p = new Box(placement._2, placement._2, placement._2)
+      p.setTranslateX(placement._2/2)
+      p.setTranslateY(placement._2/2)
+      p.setTranslateZ(placement._2/2)
+      p.getBoundsInParent.contains(shape.getBoundsInParent)
+    }
+
     g match {
       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
       case Nil => oct
-      case h :: t => insertTrees(t, insertTree(h, oct, placement), placement)
+      case h :: t =>
+        if(isContained(h,placement))
+          insertTrees(t, insertTree(h, oct, placement), placement)
+        else
+          insertTrees(t, oct, placement)
     }
   }
 
@@ -743,6 +765,7 @@ class Main extends Application {
         else
           OcLeaf(section)
     }
+
   }
 
   //método T3
