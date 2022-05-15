@@ -270,10 +270,12 @@ class Main extends Application {
 
       // 3D objects (group of nodes - javafx.scene.Node) that will be provide to the subScene
       val worldRoot: Group = new Group(camVolume, lineX, lineY, lineZ, wiredBox)
-
+      //val wiredBoxes :
       addToWorld(oct, worldRoot)
-
-      changeColor(oct, camVolume)
+      val partitions = makeTreePartitions(oct)
+      addPartitionsToWorld(partitions,worldRoot) // + wired boxes
+      changePartitionColor(partitions,camVolume)
+      //changeColor(oct, camVolume)
 
       // Camera
       val camera = new PerspectiveCamera(true)
@@ -323,7 +325,8 @@ class Main extends Application {
         camVolume.setTranslateX(camVolume.getTranslateX + 2)
         worldRoot.getChildren.removeAll()
         // metodo T3
-        changeColor(oct, camVolume)
+        //changeColor(oct, camVolume)
+        changePartitionColor(partitions,camVolume)
       })
 
       //setup and start the Stage
@@ -346,17 +349,6 @@ class Main extends Application {
     val numPattern = "[0-9]+".r
     val getRGB = numPattern.findAllIn(a(1)).toArray
     val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
-
-    // if (a(1) == "(150,0,0)") {
-    //      s.setMaterial(redMaterial)
-    //    } else if (a(1) == "(0,255,0)") {
-    //
-    //      s.setMaterial(greenMaterial)
-    //    } else if (a(1) == "(0,0,150)") {
-    //      s.setMaterial(blueMaterial)
-    //    } else if (a(1) == "(255,255,0)") {
-    //      s.setMaterial(yellowMaterial)
-    //    }
     s.setMaterial(rgb)
     s.setTranslateX(a(2).toInt)
     s.setTranslateY(a(3).toInt)
@@ -455,6 +447,48 @@ class Main extends Application {
     }
   }
 
+  def makeTreePartitions(oct: Octree[Placement]):List[Shape3D] = {
+    oct match {
+      case OcEmpty => Nil
+      case OcLeaf(section: Section) =>
+        val partition = new Box(section._1._2, section._1._2, section._1._2)
+        partition.setTranslateX(section._1._1._1)
+        partition.setTranslateY(section._1._1._2)
+        partition.setTranslateZ(section._1._1._3)
+        partition.setDrawMode(DrawMode.LINE)
+        List(partition.asInstanceOf[Shape3D])
+
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
+        val partition = new Box(coords._2, coords._2, coords._2)
+        if(coords._2 == 32){
+          partition.setTranslateX(coords._2/2)
+          partition.setTranslateY(coords._2/2)
+          partition.setTranslateZ(coords._2/2)
+        }
+          else{
+        partition.setTranslateX(coords._1._1)
+        partition.setTranslateY(coords._1._2)
+        partition.setTranslateZ(coords._1._3)}
+        partition.setDrawMode(DrawMode.LINE)
+        List(partition.asInstanceOf[Shape3D]) :::
+        makeTreePartitions(up_00) :::
+        makeTreePartitions(up_01) :::
+        makeTreePartitions(up_10) :::
+        makeTreePartitions(up_11) :::
+        makeTreePartitions(down_00) :::
+        makeTreePartitions(down_01) :::
+        makeTreePartitions(down_10) :::
+        makeTreePartitions(down_11)
+    }
+  }
+  def addPartitionsToWorld(l: List[Shape3D], worldObjects: Group): Unit = {
+    l match {
+      case Nil => Nil
+      case h::t => {
+        worldObjects.getChildren.add(h)
+        addPartitionsToWorld(t, worldObjects)}
+    }
+  }
 
   //método T3
   def addToWorld(oct: Octree[Placement], worldObjects: Group): Unit = {
@@ -614,7 +648,8 @@ class Main extends Application {
           OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
 
         else {
-          OcLeaf((placement, List(shape, createPartition(placement))))
+          //OcLeaf((placement, List(shape, createPartition(placement))))
+          OcLeaf((placement, List(shape)))
         }
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
@@ -652,7 +687,7 @@ class Main extends Application {
         OcLeaf(s)
       } else*/
 
-        if (isContained(shape, getPlacement(placement, "down_00")) ||
+        /*if (isContained(shape, getPlacement(placement, "down_00")) ||
           isContained(shape, getPlacement(placement, "down_01")) ||
           isContained(shape, getPlacement(placement, "down_10")) ||
           isContained(shape, getPlacement(placement, "down_11")) ||
@@ -670,10 +705,28 @@ class Main extends Application {
             insertTree(shape, down_01, getPlacement(placement, "down_01")),
             insertTree(shape, down_10, getPlacement(placement, "down_10")),
             insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        } else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
+        }*/
+        if(isContained(shape, getPlacement(placement, "down_00")))
+          OcNode(coords,up_00, up_01, up_10, up_11, insertTree(shape, down_00, getPlacement(placement, "down_00")), down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "down_01")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, insertTree(shape, down_01, getPlacement(placement, "down_01")), down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "down_10")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, down_01,insertTree(shape, down_10, getPlacement(placement, "down_10")), down_11)
+        else if(isContained(shape, getPlacement(placement, "down_11")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, down_01, down_10, insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        else if(isContained(shape, getPlacement(placement, "up_00")))
+          OcNode(coords,insertTree(shape, up_00, getPlacement(placement, "up_00")), up_01, up_10, up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_01")))
+          OcNode(coords,up_00, insertTree(shape, up_01, getPlacement(placement, "up_01")), up_10, up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_10")))
+          OcNode(coords,up_00,up_01, insertTree(shape, up_10, getPlacement(placement, "up_10")), up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_11")))
+          OcNode(coords,up_00,up_01,up_10, insertTree(shape, up_11, getPlacement(placement, "up_11")), down_00, down_01, down_10, down_11)
+        else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
           val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
           if (nodeObjs.isEmpty) { // Se ainda não existiam modelos gráficos na dependência do nó
-            val a = new Section(coords, List(shape, createPartition(coords)))
+            //val a = new Section(coords, List(shape, createPartition(coords)))
+            val a = new Section(coords, List(shape))
             OcLeaf(a)
           } else { // Se ainda já existiam modelos gráficos na dependência do nó
             val s = new Section(coords, List(shape).concat(nodeObjs)) // cria a nova secao e acrescenta os modelos gráficos na dependência do nó
@@ -714,6 +767,25 @@ class Main extends Application {
         OcLeaf(section._1, l)
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => OcNode(coords, changeColor(up_00, intersectingObject), changeColor(up_01, intersectingObject), changeColor(up_10, intersectingObject),
         changeColor(up_11, intersectingObject), changeColor(down_00, intersectingObject), changeColor(down_01, intersectingObject), changeColor(down_10, intersectingObject), changeColor(down_11, intersectingObject))
+    }
+  }
+
+  def changePartitionColor(l: List[Shape3D], intersectingObject: Shape3D): Unit = {
+    l match {
+      case Nil => Nil
+      case h :: t => {
+        if (h.getDrawMode == DrawMode.LINE) {
+          if (intersectingObject.getBoundsInParent.intersects(h.getBoundsInParent)) {
+            h.setMaterial(yellowMaterial)
+          }
+          else {
+            if (h.getMaterial != redMaterial) {
+              h.setMaterial(redMaterial)
+            }
+          }
+        }
+        changePartitionColor(t, intersectingObject)
+      }
     }
   }
 
