@@ -109,11 +109,11 @@ class Main extends Application {
     val translY = validation(0, 100)
     println("Which is the value of the translate of z?")
     val translZ = validation(0, 100)
-    println("Which is the value of the translate of x?")
+    println("Which is the value of the scale of x?")
     val escX = validation(0, 100)
-    println("Which is the value of the translate of y?")
+    println("Which is the value of the scale of y?")
     val escY = validation(0, 100)
-    println("Which is the value of the translate of z?")
+    println("Which is the value of the scale of z?")
     val escZ = validation(0, 100)
 
     val colorRGB = List("(" + r, g, b + ")")
@@ -152,7 +152,7 @@ class Main extends Application {
     @tailrec
     def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]): Unit = {
       println("Menu\n" +
-        " 1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Lunch 3D environment\n 5 - Exit")
+        " 1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Launch 3D environment\n 5 - Exit")
       readLine match {
         case "1" =>
           val l = List(createObject())
@@ -460,7 +460,7 @@ class Main extends Application {
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
         val partition = new Box(coords._2, coords._2, coords._2)
-        if(coords._2 == 32){
+        if((coords._1._1, coords._1._2,coords._1._3)== (0,0,0)){
           partition.setTranslateX(coords._2/2)
           partition.setTranslateY(coords._2/2)
           partition.setTranslateZ(coords._2/2)
