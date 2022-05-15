@@ -1,28 +1,21 @@
-import com.sun.prism.image.Coords
 import javafx.application.Application
-import javafx.fxml.FXMLLoader
-import javafx.geometry.{Insets, Point3D, Pos}
+import javafx.geometry.{Insets, Pos}
 import javafx.scene.paint.PhongMaterial
 import javafx.scene.shape._
-import javafx.scene.transform.{Rotate, Translate}
-import javafx.scene.{Group, Node, Parent, PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
+import javafx.scene.transform.Rotate
+import javafx.scene.{Group, Node, PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 import javafx.stage.Stage
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 
 import scala.io.StdIn.readLine
-import java.io
 import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.language.postfixOps
-import java.io.IOException
-import java.nio.file.DirectoryIteratorException
-import java.nio.file.DirectoryStream
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.Path
+
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import scala.annotation.tailrec
 
 
 class Main extends Application {
@@ -51,13 +44,6 @@ class Main extends Application {
 
   case class NodeDepthOctant(shape: Shape3D, division: Box, depth: Int, octantNumber: Int, parentOctantNumber: Int)
 
-  /*
-    Additional information about JavaFX basic concepts (e.g. Stage, Scene) will be provided in week7
-   */
-  def showPrompt(s: String): Unit = {
-    print("\n" + s)
-  }
-
   def showFilesNameFromDirectory(): Array[File] = {
     try {
       val file: File = new File("src/")
@@ -78,37 +64,30 @@ class Main extends Application {
     }
   }
 
-
-  def getUserInput(): String = readLine.trim.toLowerCase
-
   def applyScale(oct: Octree[Placement]): Octree[Placement] = {
     println("Which is the factor to be applied? \n 1 - Factor 0.5 or 2 - Factor 2 ")
-    val userInput = getUserInput()
-    userInput match {
+    readLine match {
       case "1" => scaleOctree(0.5, oct)
       case "2" => scaleOctree(2, oct)
-      case _ => {
+      case _ =>
         println("Invalid option! Please choose 1 or 2")
         applyScale(oct)
-      }
     }
   }
 
   def applyMapColour(oct: Octree[Placement]): Octree[Placement] = {
     println("Which is the function to be applied? \n 1 - RemoveGreenComponent or 2 - Sepia")
-    val userInput = getUserInput()
-    userInput match {
+    readLine match {
       case "1" => mapColourEffect(removeGreenComponent, oct)
       case "2" => mapColourEffect(sepia, oct)
-      case _ => {
+      case _ =>
         println("Invalid option! Please choose 1 or 2")
         applyMapColour(oct)
-      }
     }
   }
 
   def validation(min: Int, max: Int): Int = {
-    val userInput = getUserInput()
+    val userInput = readLine
     if (userInput.matches("(0?[0-9]{1,2}|1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])"))
       userInput.toInt
     else {
@@ -146,26 +125,21 @@ class Main extends Application {
 
   def createObject(): String = {
     println("Which is the type of the object?\n 1 - Box\n 2 - Cylinder")
-    val userInput = getUserInput()
-    userInput match {
-      case "1" => {
+    readLine match {
+      case "1" =>
         confObject("Box")
-      }
-      case "2" => {
+      case "2" =>
         confObject("Cylinder")
-      }
-      case _ => {
+      case _ =>
         println("Please choose a valid option!")
         createObject()
-      }
     }
   }
 
   def saveStateOptions(): String = {
     println("Do you want to save the state of the octree?\n 1 - Yes\n 2 - No")
-    val userInput = getUserInput()
 
-    userInput match {
+    readLine match {
       case "1" => "1"
       case "2" => "2"
       case _ => "3"
@@ -175,56 +149,43 @@ class Main extends Application {
   override def start(stage: Stage): Unit = {
 
     //Get and print program arguments (args: Array[String])
-
-    val fxmlLoader =
-      new FXMLLoader(getClass.getResource("ControllerFirstWindow.fxml"))
-    val mainViewRoot: Parent = fxmlLoader.load()
-    val scene = new Scene(mainViewRoot)
-    scene.setCamera(new PerspectiveCamera(false))
-    stage.setScene(scene)
-    stage.show()
-
-    /*
-    def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]) {
+    @tailrec
+    def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]): Unit = {
       println("Menu\n" +
         " 1 - Insert object\n 2 - Apply function scaleOctree \n 3 - Apply function MapColourEffect\n 4 - Lunch 3D environment\n 5 - Exit")
-      val userInput = getUserInput()
-
-      userInput match {
-        case "1" => {
+      readLine match {
+        case "1" =>
           val l = List(createObject())
           val objects: List[Shape3D] = graphics.concat(getGraphicModels(l))
           val oct = insertTrees(objects)
           menuOptions(objects, oct)
-        }
-        case "2" => {
+
+        case "2" =>
           menuOptions(graphics, applyScale(mainOct))
-        }
-        case "3" => {
+
+        case "3" =>
           menuOptions(graphics, applyMapColour(mainOct))
-        }
-        case "4" => {
+
+        case "4" =>
           saveStateOptions() match {
-            case "1" => {
+            case "1" =>
               saveGraphicModelsState(graphics)
               iniciar(mainOct)
-            }
+
             case "2" => iniciar(mainOct)
-            case "3" => {
+            case "3" =>
               println("Please choose a valid option!")
               saveStateOptions()
-            }
+
           }
-        }
         case "5" => sys.exit()
-        case _ => {
+        case _ =>
           println("Please choose a valid option!")
           menuOptions(graphics, mainOct)
-        }
       }
     }
 
-    def menu() {
+    def menu(): Unit = {
 
       if (showFilesNameFromDirectory().length == 0) {
         println("Does not exist any configuration file on the directory")
@@ -237,12 +198,14 @@ class Main extends Application {
         println("Type the option with the name of the configuration file ")
         val a: Array[File] = showFilesNameFromDirectory()
         displayFiles(a)
-        val fileName = getUserInput()
+        val fileName = readLine
         try {
           if (fileName.toInt <= a.length - 1 && fileName.toInt >= 0) {
-            val l1 = Source.fromFile("src/" + a(fileName.toInt).getName).getLines.toList
+            val file = Source.fromFile("src/" + a(fileName.toInt).getName)
+            val l1 = file.getLines.toList
             val graphics = getGraphicModels(l1)
             val main = insertTrees(graphics)
+            file.close()
             menuOptions(graphics, main)
           }
           else {
@@ -253,14 +216,12 @@ class Main extends Application {
         catch {
           case e: FileNotFoundException => println(fileName + " file not found")
             println("Do you want to choose another file? 1 - Yes or 2 - No")
-            val userInput = getUserInput()
-            userInput match {
+            readLine match {
               case "1" => menu()
               case "2" => sys.exit()
-              case _ => {
+              case _ =>
                 println("Invalid option! Please choose 1 or 2")
                 menu()
-              }
             }
         }
       }
@@ -268,7 +229,7 @@ class Main extends Application {
 
     menu()
 
-    def iniciar(oct: Octree[Placement]) {
+    def iniciar(oct: Octree[Placement]): Unit = {
       //3D objects
       val lineX = new Line(0, 0, 200, 0)
       lineX.setStroke(Color.GREEN)
@@ -278,11 +239,11 @@ class Main extends Application {
 
       val lineZ = new Line(0, 0, 200, 0)
       lineZ.setStroke(Color.LIGHTSALMON)
-      lineZ.getTransforms().add(new Rotate(-90, 0, 0, 0, Rotate.Y_AXIS))
+      lineZ.getTransforms.add(new Rotate(-90, 0, 0, 0, Rotate.Y_AXIS))
 
       val camVolume = new Cylinder(10, 50, 10)
       camVolume.setTranslateX(1)
-      camVolume.getTransforms().add(new Rotate(45, 0, 0, 0, Rotate.X_AXIS))
+      camVolume.getTransforms.add(new Rotate(45, 0, 0, 0, Rotate.X_AXIS))
       camVolume.setMaterial(blueMaterial)
       camVolume.setDrawMode(DrawMode.LINE)
 
@@ -344,7 +305,7 @@ class Main extends Application {
       cameraView.getT.setZ(-100)
       cameraView.getT.setY(-500)
       cameraView.getCamera.setTranslateZ(-50)
-      cameraView.startViewing
+      cameraView.startViewing()
 
       // Position of the CameraView: Right-bottom corner
       StackPane.setAlignment(cameraView, Pos.BOTTOM_RIGHT)
@@ -358,7 +319,7 @@ class Main extends Application {
       val scene = new Scene(root, 810, 610, true, SceneAntialiasing.BALANCED)
 
       //Mouse left click interaction
-      scene.setOnMouseClicked((event) => {
+      scene.setOnMouseClicked(event=> {
         camVolume.setTranslateX(camVolume.getTranslateX + 2)
         worldRoot.getChildren.removeAll()
         // metodo T3
@@ -368,8 +329,8 @@ class Main extends Application {
       //setup and start the Stage
       stage.setTitle("PPM Project 21/22")
       stage.setScene(scene)
-      stage.show
-    }*/
+      stage.show()
+    }
   }
 
   override def init(): Unit = {
@@ -411,7 +372,7 @@ class Main extends Application {
 
     l match {
       case Nil => Nil
-      case h :: t => {
+      case h :: t =>
         val arg = h.split(" ")
         if (h.startsWith("Cylinder")) {
           val x = new Cylinder(0.5, 1, 10)
@@ -425,14 +386,13 @@ class Main extends Application {
         } else {
           getGraphicModels(t)
         }
-      }
     }
   }
 
   def saveModel(lst: List[Shape3D]): List[String] = {
     lst match {
       case Nil => Nil
-      case h :: t => {
+      case h :: t =>
         if (h.getMaterial.asInstanceOf[PhongMaterial] == null) {
           saveModel(t)
         }
@@ -446,13 +406,11 @@ class Main extends Application {
           val objLine = args.mkString(" ")
           objLine :: saveModel(t)
         }
-      }
     }
   }
 
   def saveGraphicModelsState(l: List[Shape3D]): Unit = {
     val filename = readLine("Type the filename to save the state: \n")
-    println(filename)
     val tStampRaw = LocalDateTime.now()
     val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(tStampRaw)
     val file = new File("src/" + filename + "_" + tStamp + ".txt")
@@ -463,16 +421,14 @@ class Main extends Application {
       bw.close()
     }
     catch {
-      case e: FileNotFoundException => println(file + "It is not possible to create the file")
+      case e: FileNotFoundException => println(" file not found")
         println("Do you want to try again? 1 - Yes or 2 - No")
-        val userInput = getUserInput()
-        userInput match {
+        readLine match {
           case "1" => saveGraphicModelsState(l)
           case "2" => sys.exit()
-          case _ => {
+          case _ =>
             println("Invalid option! Please choose 1 or 2")
             saveGraphicModelsState(l)
-          }
         }
     }
   }
@@ -484,7 +440,7 @@ class Main extends Application {
       case OcLeaf(section: Section) =>
         section._2.map(x => x.asInstanceOf[Shape3D])
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        (getTreeGraphics(up_00) ::: getTreeGraphics(up_01) ::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) ::: getTreeGraphics(down_10) ::: getTreeGraphics(down_11))
+        getTreeGraphics(up_00) ::: getTreeGraphics(up_01) ::: getTreeGraphics(up_10) ::: getTreeGraphics(up_11) ::: getTreeGraphics(down_00) ::: getTreeGraphics(down_01) ::: getTreeGraphics(down_10) ::: getTreeGraphics(down_11)
     }
   }
 
@@ -492,11 +448,10 @@ class Main extends Application {
     l match {
       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
       case Nil => worldObjects
-      case h :: t => {
+      case h :: t =>
         val x = getTextGroup(t, worldObjects)
         x.getChildren.add(h)
         x
-      }
     }
   }
 
@@ -505,14 +460,13 @@ class Main extends Application {
   def addToWorld(oct: Octree[Placement], worldObjects: Group): Unit = {
     oct match {
       case OcEmpty => Nil
-      case OcLeaf(section: Section) => {
+      case OcLeaf(section: Section) =>
         section._2.map(x => {
           val y = x
           worldObjects.getChildren.remove(x)
           worldObjects.getChildren.add(y)
         })
-      }
-      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
         addToWorld(up_00, worldObjects)
         addToWorld(up_01, worldObjects)
         addToWorld(up_10, worldObjects)
@@ -521,7 +475,6 @@ class Main extends Application {
         addToWorld(down_01, worldObjects)
         addToWorld(down_10, worldObjects)
         addToWorld(down_11, worldObjects)
-      }
     }
   }
 
@@ -529,9 +482,7 @@ class Main extends Application {
     g match {
       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
       case Nil => oct
-      case h :: t => {
-        insertTrees(t, insertTree(h, oct, placement), placement)
-      }
+      case h :: t => insertTrees(t, insertTree(h, oct, placement), placement)
     }
   }
 
@@ -754,7 +705,7 @@ class Main extends Application {
             }
             else {
               if (x.asInstanceOf[Shape3D].getMaterial != redMaterial) {
-                y.asInstanceOf[Shape3D].setMaterial((redMaterial))
+                y.asInstanceOf[Shape3D].setMaterial(redMaterial)
               }
             }
           }
@@ -771,11 +722,11 @@ class Main extends Application {
     if (fact == 0.5 || fact == 2) {
       oct match {
         case OcEmpty => OcEmpty
-        case OcLeaf(section) => {
-          val a = (section.asInstanceOf[Section]._1._1._1 * fact)
-          val b = (section.asInstanceOf[Section]._1._1._2 * fact)
-          val c = (section.asInstanceOf[Section]._1._1._3 * fact)
-          val s = (section.asInstanceOf[Section]._1._2 * fact)
+        case OcLeaf(section) =>
+          val a = section.asInstanceOf[Section]._1._1._1 * fact
+          val b = section.asInstanceOf[Section]._1._1._2 * fact
+          val c = section.asInstanceOf[Section]._1._1._3 * fact
+          val s = section.asInstanceOf[Section]._1._2 * fact
 
           val l: List[Node] = section.asInstanceOf[Section]._2.map(w => {
             w.setScaleX(w.getScaleX * fact)
@@ -786,15 +737,12 @@ class Main extends Application {
             w.setTranslateZ(w.getTranslateZ * fact)
             w
           })
-
           OcLeaf(((a, b, c), s), l)
-        }
-        case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
+        case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
           val c: Placement = ((coords._1._1 * fact, coords._1._2 * fact, coords._1._3 * fact), coords._2 * fact)
 
           OcNode(c, scaleOctree(fact, up_00), scaleOctree(fact, up_01), scaleOctree(fact, up_10),
             scaleOctree(fact, up_11), scaleOctree(fact, down_00), scaleOctree(fact, down_01), scaleOctree(fact, down_10), scaleOctree(fact, down_11))
-        }
       }
     }
     else {
@@ -806,10 +754,10 @@ class Main extends Application {
   def mapColourEffect(func: Color => Color, oct: Octree[Placement]): Octree[Placement] = {
     oct match {
       case OcEmpty => OcEmpty
-      case OcLeaf(section) => {
+      case OcLeaf(section) =>
         section.asInstanceOf[Section]._2.map(x => {
           if (x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE) {
-            val c = func(x.asInstanceOf[Shape3D].getMaterial().asInstanceOf[PhongMaterial].getDiffuseColor)
+            val c = func(x.asInstanceOf[Shape3D].getMaterial.asInstanceOf[PhongMaterial].getDiffuseColor)
             val m = new PhongMaterial()
             m.setDiffuseColor(c)
             x.asInstanceOf[Shape3D].setMaterial(m)
@@ -819,11 +767,9 @@ class Main extends Application {
             x
         })
         OcLeaf(section)
-      }
-      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
+      case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
         OcNode(coords, mapColourEffect(func, up_00), mapColourEffect(func, up_01), mapColourEffect(func, up_10),
           mapColourEffect(func, up_11), mapColourEffect(func, down_00), mapColourEffect(func, down_01), mapColourEffect(func, down_10), mapColourEffect(func, down_11))
-      }
     }
   }
 
