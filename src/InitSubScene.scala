@@ -16,6 +16,9 @@ object InitSubScene{
   val blueMaterial = new PhongMaterial()
   blueMaterial.setDiffuseColor(Color.rgb(0,0,150))
 
+  val yellowMaterial = new PhongMaterial()
+  yellowMaterial.setDiffuseColor(Color.rgb(255, 255, 0))
+
   //3D objects
   val lineX = new Line(0, 0, 200, 0)
   lineX.setStroke(Color.GREEN)
