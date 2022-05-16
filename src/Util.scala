@@ -213,16 +213,6 @@ object Util {
       case OcEmpty =>
         if (!isContained(shape, placement))
           OcEmpty
-        /*else if(shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_00")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_01")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_10")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_11")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_00")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_01")).getBoundsInParent) ||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_10")).getBoundsInParent)||
-              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_11")).getBoundsInParent)
-      )
-        OcLeaf((placement, List(shape, createPartition(placement))))*/
         else if (isContained(shape, getPlacement(placement, "up_00")))
           OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
         else if (isContained(shape, getPlacement(placement, "up_01")))
@@ -241,64 +231,10 @@ object Util {
           OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
 
         else {
-          //OcLeaf((placement, List(shape, createPartition(placement))))
           OcLeaf((placement, List(shape)))
         }
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
-        val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
-        OcLeaf(s)
-        val o: Octree[Placement] = OcNode(coords,
-          OcLeaf(s),
-          insertTree(shape, up_01, getPlacement(placement, "up_01")),
-          insertTree(shape, up_10, getPlacement(placement, "up_10")),
-          insertTree(shape, up_11, getPlacement(placement, "up_11")),
-          insertTree(shape, down_00, getPlacement(placement, "down_00")),
-          insertTree(shape, down_01, getPlacement(placement, "down_01")),
-          insertTree(shape, down_10, getPlacement(placement, "down_10")),
-          insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        // verificar se o placement do nó são iguais às coordenadas da ocleaf
-        if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
-          o.asInstanceOf[OcNode[Placement]].up_00
-        else
-          o
-      }
-      else */
-        /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
-        ) {
-        println(shape.getBoundsInParent)
-        println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
-        val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
-        OcLeaf(s)
-      } else*/
-
-        /*if (isContained(shape, getPlacement(placement, "down_00")) ||
-          isContained(shape, getPlacement(placement, "down_01")) ||
-          isContained(shape, getPlacement(placement, "down_10")) ||
-          isContained(shape, getPlacement(placement, "down_11")) ||
-          isContained(shape, getPlacement(placement, "up_01")) ||
-          isContained(shape, getPlacement(placement, "up_10")) ||
-          isContained(shape, getPlacement(placement, "up_11")) ||
-          isContained(shape, getPlacement(placement, "up_00"))
-        ) {
-          OcNode(coords,
-            insertTree(shape, up_00, getPlacement(placement, "up_00")),
-            insertTree(shape, up_01, getPlacement(placement, "up_01")),
-            insertTree(shape, up_10, getPlacement(placement, "up_10")),
-            insertTree(shape, up_11, getPlacement(placement, "up_11")),
-            insertTree(shape, down_00, getPlacement(placement, "down_00")),
-            insertTree(shape, down_01, getPlacement(placement, "down_01")),
-            insertTree(shape, down_10, getPlacement(placement, "down_10")),
-            insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        }*/
         if(isContained(shape, getPlacement(placement, "down_00")))
           OcNode(coords,up_00, up_01, up_10, up_11, insertTree(shape, down_00, getPlacement(placement, "down_00")), down_01, down_10, down_11)
         else if(isContained(shape, getPlacement(placement, "down_01")))
@@ -354,9 +290,7 @@ object Util {
       case OcEmpty => Nil
       case OcLeaf(section: Section) => {
         section._2.map(x => {
-          val y = x
-          worldObjects.getChildren.remove(x)
-          worldObjects.getChildren.add(y)
+          worldObjects.getChildren.add(x)
         })
       }
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) => {
