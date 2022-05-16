@@ -555,7 +555,7 @@ object Util {
           val colorString = colorRGB.mkString(",")
           val shp = h.toString.split("@")
           //println(h.toString)
-          val args = List(shp(0), colorString, h.getTranslateX.toInt.toString, h.getTranslateY.toInt.toString, h.getTranslateZ.toInt.toString, h.getScaleX.toInt.toString, h.getScaleY.toInt.toString, h.getScaleZ.toInt.toString)
+          val args = List(shp(0), colorString, h.getTranslateX.toString, h.getTranslateY.toString, h.getTranslateZ.toString, h.getScaleX.toString, h.getScaleY.toString, h.getScaleZ.toString)
           val objLine = args.mkString(" ")
           objLine :: saveModel(t)
         }
