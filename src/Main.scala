@@ -1,9 +1,10 @@
 import javafx.application.Application
+import javafx.fxml.FXMLLoader
 import javafx.geometry.{Insets, Pos}
 import javafx.scene.paint.PhongMaterial
 import javafx.scene.shape._
 import javafx.scene.transform.Rotate
-import javafx.scene.{Group, Node, PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
+import javafx.scene.{Group, Node, Parent, PerspectiveCamera, Scene, SceneAntialiasing, SubScene}
 import javafx.stage.Stage
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
@@ -12,7 +13,6 @@ import scala.io.StdIn.readLine
 import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.language.postfixOps
-
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import scala.annotation.tailrec
@@ -148,6 +148,22 @@ class Main extends Application {
 
   override def start(stage: Stage): Unit = {
 
+
+    //Get and print program arguments (args: Array[String])
+    val params = getParameters
+    println("Program arguments:" + params.getRaw)
+    if(params.getRaw.get(0).equals("text")) {
+      menu()
+    }
+    if(params.getRaw.get(0).equals("graphical")) {
+      val fxmlLoader = new FXMLLoader(getClass.getResource("Controller.fxml"))
+      val mainViewRoot: Parent = fxmlLoader.load()
+      val scene = new Scene(mainViewRoot)
+      scene.setCamera(new PerspectiveCamera(false))
+      stage.setScene(scene)
+      stage.show()
+    }
+
     //Get and print program arguments (args: Array[String])
     @tailrec
     def menuOptions(graphics: List[Shape3D], mainOct: Octree[Placement]): Unit = {
@@ -227,7 +243,6 @@ class Main extends Application {
       }
     }
 
-    menu()
 
     def iniciar(oct: Octree[Placement]): Unit = {
       //3D objects
@@ -675,59 +690,7 @@ class Main extends Application {
         }
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
-        val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
-        OcLeaf(s)
-        val o: Octree[Placement] = OcNode(coords,
-          OcLeaf(s),
-          insertTree(shape, up_01, getPlacement(placement, "up_01")),
-          insertTree(shape, up_10, getPlacement(placement, "up_10")),
-          insertTree(shape, up_11, getPlacement(placement, "up_11")),
-          insertTree(shape, down_00, getPlacement(placement, "down_00")),
-          insertTree(shape, down_01, getPlacement(placement, "down_01")),
-          insertTree(shape, down_10, getPlacement(placement, "down_10")),
-          insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        // verificar se o placement do nó são iguais às coordenadas da ocleaf
-        if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
-          o.asInstanceOf[OcNode[Placement]].up_00
-        else
-          o
-      }
-      else */
-        /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
-        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
-        ) {
-        println(shape.getBoundsInParent)
-        println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
-        val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
-        OcLeaf(s)
-      } else*/
 
-        /*if (isContained(shape, getPlacement(placement, "down_00")) ||
-          isContained(shape, getPlacement(placement, "down_01")) ||
-          isContained(shape, getPlacement(placement, "down_10")) ||
-          isContained(shape, getPlacement(placement, "down_11")) ||
-          isContained(shape, getPlacement(placement, "up_01")) ||
-          isContained(shape, getPlacement(placement, "up_10")) ||
-          isContained(shape, getPlacement(placement, "up_11")) ||
-          isContained(shape, getPlacement(placement, "up_00"))
-        ) {
-          OcNode(coords,
-            insertTree(shape, up_00, getPlacement(placement, "up_00")),
-            insertTree(shape, up_01, getPlacement(placement, "up_01")),
-            insertTree(shape, up_10, getPlacement(placement, "up_10")),
-            insertTree(shape, up_11, getPlacement(placement, "up_11")),
-            insertTree(shape, down_00, getPlacement(placement, "down_00")),
-            insertTree(shape, down_01, getPlacement(placement, "down_01")),
-            insertTree(shape, down_10, getPlacement(placement, "down_10")),
-            insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        }*/
         if(isContained(shape, getPlacement(placement, "down_00")))
           OcNode(coords,up_00, up_01, up_10, up_11, insertTree(shape, down_00, getPlacement(placement, "down_00")), down_01, down_10, down_11)
         else if(isContained(shape, getPlacement(placement, "down_01")))
@@ -912,204 +875,6 @@ class Main extends Application {
     }
 
   }
-
-  /*
-    //Usado para testes
-    def getOctant(octantNumber: Int, universe: Box): Box = {
-      val octSize = universe.getHeight / 2
-      val oct = new Box(octSize, octSize, octSize)
-      octantNumber match {
-        case 1 =>
-          oct.setTranslateX(universe.getTranslateX + octSize / 2)
-          oct.setTranslateY(universe.getTranslateY + octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-          oct
-        case 2 =>
-          oct.setTranslateX(universe.getTranslateX - octSize / 2)
-          oct.setTranslateY(universe.getTranslateY + octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-          oct
-        case 3 =>
-          oct.setTranslateX(universe.getTranslateX + octSize / 2)
-          oct.setTranslateY(universe.getTranslateY - octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-          oct
-        case 4 =>
-          oct.setTranslateX(universe.getTranslateX + octSize / 2)
-          oct.setTranslateY(universe.getTranslateY + octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-          oct
-        case 5 =>
-          oct.setTranslateX(universe.getTranslateX - octSize / 2)
-          oct.setTranslateY(universe.getTranslateY - octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-          oct
-        case 6 =>
-          oct.setTranslateX(universe.getTranslateX - octSize / 2)
-          oct.setTranslateY(universe.getTranslateY + octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-          oct
-        case 7 =>
-          oct.setTranslateX(universe.getTranslateX + octSize / 2)
-          oct.setTranslateY(universe.getTranslateY - octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-          oct
-        case 8 =>
-          oct.setTranslateX(universe.getTranslateX - octSize / 2)
-          oct.setTranslateY(universe.getTranslateY - octSize / 2)
-          oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-          oct
-      }
-    }
-    def getNodeDepthOctant(obj:Shape3D, depth:Int=0, universe:Box,octant:Int=0, parentOctant:Int=0):NodeDepthOctant = {
-      def getOctant(octantNumber:Int): Box= {
-        val octSize = universe.getHeight / 2
-        val oct = new Box(octSize, octSize, octSize)
-        octantNumber match {
-          case 1 =>
-            oct.setTranslateX(universe.getTranslateX + octSize / 2)
-            oct.setTranslateY(universe.getTranslateY + octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-            oct
-          case 2 =>
-            oct.setTranslateX(universe.getTranslateX - octSize / 2)
-            oct.setTranslateY(universe.getTranslateY + octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-            oct
-          case 3 =>
-            oct.setTranslateX(universe.getTranslateX + octSize / 2)
-            oct.setTranslateY(universe.getTranslateY - octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-            oct
-          case 4 =>
-            oct.setTranslateX(universe.getTranslateX + octSize / 2)
-            oct.setTranslateY(universe.getTranslateY + octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-            oct
-          case 5 =>
-            oct.setTranslateX(universe.getTranslateX - octSize / 2)
-            oct.setTranslateY(universe.getTranslateY - octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ + octSize / 2)
-            oct
-          case 6 =>
-            oct.setTranslateX(universe.getTranslateX - octSize / 2)
-            oct.setTranslateY(universe.getTranslateY + octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-            oct
-          case 7 =>
-            oct.setTranslateX(universe.getTranslateX + octSize / 2)
-            oct.setTranslateY(universe.getTranslateY - octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-            oct
-          case 8 =>
-            oct.setTranslateX(universe.getTranslateX - octSize / 2)
-            oct.setTranslateY(universe.getTranslateY - octSize / 2)
-            oct.setTranslateZ(universe.getTranslateZ - octSize / 2)
-            oct
-        }
-      }
-      val r = new NodeDepthOctant(obj : Shape3D,universe,depth-1,octant, parentOctant)
-      if (getOctant(1).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(1), 1,octant)
-      else if (getOctant(2).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(2), 2,octant)
-      else if (getOctant(3).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(3), 3,octant)
-      else if (getOctant(4).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(4), 4,octant)
-      else if (getOctant(5).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(5), 5,octant)
-      else if (getOctant(6).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(6), 6,octant)
-      else if (getOctant(7).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(7), 7,octant)
-      else if (getOctant(8).getBoundsInParent.contains(obj.asInstanceOf[Shape3D].getBoundsInParent))
-        getNodeDepthOctant(obj, depth + 1, getOctant(8), 8,octant)
-      else
-        r
-    }
-    // ----------------- TESTE DE OCTREE -----------------
-    def hasObj(x: List[Shape3D], y:Node): Boolean = x match{
-      case Nil => false
-      case h::t => if(y.getBoundsInParent.contains(h.getBoundsInParent)) true  else hasObj(t,y)
-    }
-    def shapeToNode(s: List[Shape3D]): List[Node] = s match{
-      case Nil => Nil
-      case h::t => h.asInstanceOf[Node]::shapeToNode(t)
-    }
-    def getOcLeafs (root: Box): List[Node] = {
-      val newSide = root.asInstanceOf[Box].getHeight/2
-      val tx = root.asInstanceOf[Box].getTranslateX; val ty = root.asInstanceOf[Box].getTranslateY; val tz = root.asInstanceOf[Box].getTranslateZ
-      val oc1 = new Box(tx+newSide, ty+newSide, tz+newSide)
-      val oc2 = new Box(tx-newSide, ty+newSide, tz+newSide)
-      val oc3 = new Box(tx+newSide, ty-newSide, tz+newSide)
-      val oc4 = new Box(tx+newSide, ty+newSide, tz-newSide)
-      val oc5 = new Box(tx-newSide, ty-newSide, tz+newSide)
-      val oc6 = new Box(tx-newSide, ty+newSide, tz-newSide)
-      val oc7 = new Box(tx+newSide, ty-newSide, tz-newSide)
-      val oc8 = new Box(tx+newSide, ty+newSide, tz+newSide)
-      List(oc1,oc2,oc3,oc4,oc5,oc6,oc7,oc8)
-    }
-    def setOcleafList(newOcleaf:Node, objs: List[Shape3D]): List[Node] ={
-      objs match {
-        case Nil => Nil
-        case h::t => { if(newOcleaf.asInstanceOf[Shape3D].getBoundsInParent.contains(h.getBoundsInParent))
-          h::setOcleafList(newOcleaf,t)
-        else setOcleafList(newOcleaf, t)}
-      }
-    }
-    def getOcTree(newOcleaf: Node, x:List[Shape3D]): Octree[Placement] = {
-      if (hasObj(x, newOcleaf)) {
-        //definir a lista de objetos dentro do nó
-        val lst = setOcleafList(newOcleaf, x)
-        //definir a section
-        val s: Section = (((newOcleaf.getTranslateX, newOcleaf.getTranslateY, newOcleaf.getTranslateZ), newOcleaf.asInstanceOf[Box].getHeight), lst)
-        //nova ocleaf, com novas coordenadas, tamanho e lista de objetos
-        if (getTree(x,newOcleaf.asInstanceOf[Shape3D]) == OcEmpty){
-          OcLeaf(s)
-        }
-        else getTree(x,newOcleaf.asInstanceOf[Shape3D])
-      }
-      else OcEmpty
-    }
-    def getTree(x:List[Shape3D], root: Shape3D):Octree[Placement] ={
-      val h: Size = root.asInstanceOf[Box].getHeight
-      val p: Placement = ((root.getTranslateX, root.getTranslateY, root.getTranslateZ),h)
-      //val z = shapeToNode(x)
-      //val s: Section = (((root.getTranslateX, root.getTranslateY, root.getTranslateZ),h),z)
-      //val l = OcLeaf(s)
-      //verificar se Ocnode é OcEmpty
-      if(hasObj(x,root)){
-        //Se tem Objetos gera OcTrees (OcLeafs ou OcEmpty) => criar novos nós (Octrees)
-        val newSide = root.asInstanceOf[Box].getHeight/2
-        val tx = root.asInstanceOf[Box].getTranslateX; val ty = root.asInstanceOf[Box].getTranslateY; val tz = root.asInstanceOf[Box].getTranslateZ
-        val oc1 = new Box(tx+newSide, ty+newSide, tz+newSide)
-        val oc2 = new Box(tx-newSide, ty+newSide, tz+newSide)
-        val oc3 = new Box(tx+newSide, ty-newSide, tz+newSide)
-        val oc4 = new Box(tx+newSide, ty+newSide, tz-newSide)
-        val oc5 = new Box(tx-newSide, ty-newSide, tz+newSide)
-        val oc6 = new Box(tx-newSide, ty+newSide, tz-newSide)
-        val oc7 = new Box(tx+newSide, ty-newSide, tz-newSide)
-        val oc8 = new Box(tx+newSide, ty+newSide, tz+newSide)
-        // Verificar se os objetos ficam contidos nalgum dos novos nós
-        if ((hasObj(x,oc1))||(hasObj(x,oc2))|| (hasObj(x,oc3)) || (hasObj(x,oc4) || (hasObj(x,oc5)) || (hasObj(x,oc6)) || (hasObj(x,oc7))) || hasObj(x,oc8)){
-          OcNode[Placement](p,getOcTree(oc1.asInstanceOf[Node],x),
-            getOcTree(oc2.asInstanceOf[Node],x),
-            getOcTree(oc3.asInstanceOf[Node],x),
-            getOcTree(oc4.asInstanceOf[Node],x),
-            getOcTree(oc5.asInstanceOf[Node],x),
-            getOcTree(oc6.asInstanceOf[Node],x),
-            getOcTree(oc7.asInstanceOf[Node],x),
-            getOcTree(oc8.asInstanceOf[Node],x))
-        }
-        // se os novos nós não contêm objectos => OcEmpty
-        else OcEmpty
-      }
-      // Se o nó não contem objetos => OcEmpty
-      else OcEmpty
-    }
-    // --------------- FIM DE TESTE DE OCTREE -------------
-  */
 
 }
 
