@@ -2,7 +2,7 @@ import javafx.fxml.FXML
 import javafx.geometry.Insets
 import javafx.scene.control._
 import javafx.scene.SubScene
-import javafx.scene.layout.{Border, BorderStroke, BorderStrokeStyle, BorderWidths, CornerRadii, GridPane}
+import javafx.scene.layout.{AnchorPane, Border, BorderStroke, BorderStrokeStyle, BorderWidths, CornerRadii, GridPane}
 import Util._
 import javafx.scene.input.MouseEvent
 import javafx.scene.paint.Color
@@ -39,6 +39,9 @@ class Controller {
   @FXML
   private var saveButton:Button = _
 
+  @FXML
+  private var anchorPane:AnchorPane = _
+
   private var doubleSizeButton:Button = _
   private var halfSizeButton:Button = _
 
@@ -60,6 +63,7 @@ class Controller {
 
     InitSubScene.subScene.widthProperty.bind(subScene1.widthProperty)
     InitSubScene.subScene.heightProperty.bind(subScene1.heightProperty)
+
     populateFileList()
     initializeScale()
     initializeColourEffect()
@@ -120,12 +124,12 @@ class Controller {
     applyEffectButton = new Button("Apply")
 
     applyEffectButton.setOnMouseClicked(event =>  {
-      if (effectComboBox.getValue.equals("Remove Green"))
+      if (effectComboBox.getValue.equals("Sepia"))
       {
         currentOct = mapColourEffect(sepia, currentOct)
       }
 
-      if (effectComboBox.getValue.equals("Sepia"))
+      if (effectComboBox.getValue.equals("Remove Green"))
       {
         currentOct = mapColourEffect(removeGreenComponent, currentOct)
       }
