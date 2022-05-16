@@ -107,6 +107,11 @@ class Main extends Application {
     val params = getParameters
     println("Program arguments:" + getParameters.getRaw)
 
+    if(params.getRaw.isEmpty || (!params.getRaw.get(0).equals("text") && !params.getRaw.get(0).equals("graphical"))) {
+      println("Please execute with argument \"text\" or \"graphical\" ")
+      sys.exit(0)
+    }
+
     if (params.getRaw.get(0).equals("text")) {
       menu()
     }
