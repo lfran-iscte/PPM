@@ -2,18 +2,24 @@ import javafx.fxml.FXML
 import javafx.geometry.Insets
 import javafx.scene.control._
 import javafx.scene.SubScene
-import javafx.scene.layout.GridPane
+import javafx.scene.layout.{Border, BorderStroke, BorderStrokeStyle, BorderWidths, CornerRadii, GridPane}
 import Util._
+import javafx.scene.input.MouseEvent
+import javafx.scene.paint.Color
 import javafx.scene.shape.Shape3D
 
+import java.io.{BufferedWriter, File, FileNotFoundException, FileWriter}
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import scala.io.Source
+import scala.io.StdIn.readLine
 
 
 
 class Controller {
 
   @FXML
-  private var menuPane:GridPane = _
+  private var mainPane:GridPane = _
 
   @FXML
   private var graphPane:GridPane = _
@@ -26,6 +32,12 @@ class Controller {
 
   @FXML
   private var filesComboBox:ComboBox[String] = _
+
+  @FXML
+  private var fileTextField:TextField = _
+
+  @FXML
+  private var saveButton:Button = _
 
   private var doubleSizeButton:Button = _
   private var halfSizeButton:Button = _
@@ -45,6 +57,7 @@ class Controller {
   @FXML
   def initialize(): Unit = {
 
+
     InitSubScene.subScene.widthProperty.bind(subScene1.widthProperty)
     InitSubScene.subScene.heightProperty.bind(subScene1.heightProperty)
     populateFileList()
@@ -52,11 +65,17 @@ class Controller {
     initializeColourEffect()
     subScene1.setRoot(InitSubScene.root)
 
-    InitSubScene.root.setOnMouseClicked((event) => {
-      InitSubScene.camVolume.setTranslateX(InitSubScene.camVolume.getTranslateX + 2)
+    InitSubScene.root.setOnMousePressed((me: MouseEvent) => {
+      if (me.isPrimaryButtonDown) {
+        InitSubScene.camVolume.setTranslateX(InitSubScene.camVolume.getTranslateX + 2)
+      }
+      if(me.isSecondaryButtonDown){
+        InitSubScene.camVolume.setTranslateX(InitSubScene.camVolume.getTranslateX - 2)
+      }
+
       //InitSubScene.worldRoot.getChildren.removeAll()
       // metodo T3
-      changePartitionColor(currentPartitions,InitSubScene.camVolume)
+      changeColor(currentPartitions,InitSubScene.camVolume)
     })
 
     graphComboBox.getItems().addAll(
@@ -122,11 +141,10 @@ class Controller {
     removeObjects(currentPartitions,InitSubScene.worldRoot)
     currentPartitions = makeTreePartitions(currentOct)
     addPartitionsToWorld(currentPartitions,InitSubScene.worldRoot)
-    changePartitionColor(currentPartitions,InitSubScene.camVolume)
+    changeColor(currentPartitions,InitSubScene.camVolume)
   }
 
   def onLoadFileButtonPressed() : Unit = {
-    print("Load File pressed")
     val l1 = Source.fromFile("src/"+filesComboBox.getValue).getLines.toList
     val graphics = getGraphicModels(l1)
 
@@ -138,7 +156,7 @@ class Controller {
     currentPartitions = makeTreePartitions(currentOct)
     addToWorld(currentOct, InitSubScene.worldRoot)
     addPartitionsToWorld(currentPartitions,InitSubScene.worldRoot)
-    changePartitionColor(currentPartitions,InitSubScene.camVolume)
+    changeColor(currentPartitions,InitSubScene.camVolume)
   }
 
   def onGraphComboBoxAction() : Unit = {
@@ -162,6 +180,30 @@ class Controller {
       graphPane.add(applyEffectButton,1,3)
 
     }
+
+  }
+
+  def onSaveButtonPressed() : Unit = {
+
+    val filename = fileTextField.getText
+    val tStampRaw = LocalDateTime.now()
+    val tStamp = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss").format(tStampRaw)
+    val file = new File("src/" + filename + "_" + tStamp + ".txt")
+
+    try {
+      val bw = new BufferedWriter(new FileWriter(file))
+      val objLines = saveModel(getTreeGraphics(currentOct)).mkString("\n")
+      bw.write(objLines)
+      bw.close()
+    }
+    catch {
+      case e: FileNotFoundException => println(" file not found")
+    }
+
+    populateFileList()
+
+
+
 
   }
 

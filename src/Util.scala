@@ -16,7 +16,7 @@ object Util {
   type Size = Double
   type Placement = (Point, Size) //1st point: origin, 2nd point: size
 
-  /*
+
     //Materials to be applied to the 3D objects
     val redMaterial = new PhongMaterial()
     redMaterial.setDiffuseColor(Color.rgb(150, 0, 0))
@@ -29,7 +29,7 @@ object Util {
 
     val yellowMaterial = new PhongMaterial()
     yellowMaterial.setDiffuseColor(Color.rgb(255, 255, 0))
-  */
+
 
 
   def getFilesNameFromDirectory: ListBuffer[String] = {
@@ -50,14 +50,22 @@ object Util {
     val numPattern = "[0-9]+".r
     val getRGB = numPattern.findAllIn(a(1)).toArray
     val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
-
     s.setMaterial(rgb)
-    s.setTranslateX(a(2).toInt)
-    s.setTranslateY(a(3).toInt)
-    s.setTranslateZ(a(4).toInt)
-    s.setScaleX(a(5).toInt)
-    s.setScaleY(a(6).toInt)
-    s.setScaleZ(a(7).toInt)
+    if (a.length == 8){
+      s.setTranslateX(a(2).toDouble)
+      s.setTranslateY(a(3).toDouble)
+      s.setTranslateZ(a(4).toDouble)
+      s.setScaleX(a(5).toDouble)
+      s.setScaleY(a(6).toDouble)
+      s.setScaleZ(a(7).toDouble)}
+    else{
+      s.setTranslateX(0)
+      s.setTranslateY(0)
+      s.setTranslateZ(0)
+      s.setScaleX(1)
+      s.setScaleY(1)
+      s.setScaleZ(1)
+    }
     s
   }
 
@@ -84,14 +92,26 @@ object Util {
   }
 
   def insertTrees(g: List[Shape3D], oct: Octree[Placement] = new OcNode[Placement](((0, 0, 0), 32.0), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty), placement: Placement = ((0, 0, 0), 32.0)): Octree[Placement] = {
+
+    def isContained(shape: Shape3D, placement: Placement): Boolean = {
+      val p = new Box(placement._2, placement._2, placement._2)
+      p.setTranslateX(placement._2/2)
+      p.setTranslateY(placement._2/2)
+      p.setTranslateZ(placement._2/2)
+      p.getBoundsInParent.contains(shape.getBoundsInParent)
+    }
+
     g match {
       // case Nil => new Group(camVolume, lineX, lineY, lineZ)
       case Nil => oct
-      case h :: t => {
-        insertTrees(t, insertTree(h, oct, placement), placement)
-      }
+      case h :: t =>
+        if(isContained(h,placement))
+          insertTrees(t, insertTree(h, oct, placement), placement)
+        else
+          insertTrees(t, oct, placement)
     }
   }
+
 
   def insertTree(shape: Shape3D, t: Octree[Placement], placement: Placement = ((0, 0, 0), 32.0)): Octree[Placement] = {
 
@@ -148,11 +168,61 @@ object Util {
       }
     }
 
+    def createPartition(placement: Placement): Box = {
+      val partition = new Box(placement._2, placement._2, placement._2)
+      partition.setTranslateX(placement._1._1)
+      partition.setTranslateY(placement._1._2)
+      partition.setTranslateZ(placement._1._3)
+      partition.setDrawMode(DrawMode.LINE)
+      partition
+    }
+
+    def isContained1(shape: Shape3D, placement: Placement): (Boolean, Placement, String) = {
+
+      val up_00 = createPartition(getPlacement(placement, "up_00")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_01 = createPartition(getPlacement(placement, "up_01")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_10 = createPartition(getPlacement(placement, "up_10")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val up_11 = createPartition(getPlacement(placement, "up_11")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_00 = createPartition(getPlacement(placement, "down_00")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_01 = createPartition(getPlacement(placement, "down_01")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_10 = createPartition(getPlacement(placement, "down_10")).getBoundsInParent.contains(shape.getBoundsInParent)
+      val down_11 = createPartition(getPlacement(placement, "down_11")).getBoundsInParent.contains(shape.getBoundsInParent)
+
+      if (up_00)
+        (up_00, getPlacement(placement, "up_00"), "up_00")
+      else if (up_01)
+        (up_01, getPlacement(placement, "up_01"), "up_01")
+      else if (up_10)
+        (up_10, getPlacement(placement, "up_10"), "up_10")
+      else if (up_11)
+        (up_11, getPlacement(placement, "up_11"), "up_11")
+      else if (down_00)
+        (down_00, getPlacement(placement, "down_00"), "down_00")
+      else if (down_01)
+        (down_01, getPlacement(placement, "down_01"), "down_01")
+      else if (down_10)
+        (down_10, getPlacement(placement, "down_10"), "down_10")
+      else if (down_11)
+        (down_11, getPlacement(placement, "down_11"), "down_11")
+      else
+        (false, ((0.0, 0.0, 0.0), 0.0), "")
+    }
+
     t match {
 
       case OcEmpty =>
         if (!isContained(shape, placement))
           OcEmpty
+        /*else if(shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_00")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_01")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_10")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "up_11")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_00")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_01")).getBoundsInParent) ||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_10")).getBoundsInParent)||
+              shape.getBoundsInParent.intersects(createPartition(getPlacement(placement, "down_11")).getBoundsInParent)
+      )
+        OcLeaf((placement, List(shape, createPartition(placement))))*/
         else if (isContained(shape, getPlacement(placement, "up_00")))
           OcNode(placement, insertTree(shape, OcEmpty, getPlacement(placement, "up_00")), OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty)
         else if (isContained(shape, getPlacement(placement, "up_01")))
@@ -171,26 +241,80 @@ object Util {
           OcNode(placement, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, OcEmpty, insertTree(shape, OcEmpty, getPlacement(placement, "down_11")))
 
         else {
+          //OcLeaf((placement, List(shape, createPartition(placement))))
           OcLeaf((placement, List(shape)))
         }
 
       case OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, down_11) =>
-        if (isContained(shape, getPlacement(placement, "down_00")))
-          OcNode(coords, up_00, up_01, up_10, up_11, insertTree(shape, down_00, getPlacement(placement, "down_00")), down_01, down_10, down_11)
-        else if (isContained(shape, getPlacement(placement, "down_01")))
-          OcNode(coords, up_00, up_01, up_10, up_11, down_00, insertTree(shape, down_01, getPlacement(placement, "down_01")), down_10, down_11)
-        else if (isContained(shape, getPlacement(placement, "down_10")))
-          OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, insertTree(shape, down_10, getPlacement(placement, "down_10")), down_11)
-        else if (isContained(shape, getPlacement(placement, "down_11")))
-          OcNode(coords, up_00, up_01, up_10, up_11, down_00, down_01, down_10, insertTree(shape, down_11, getPlacement(placement, "down_11")))
-        else if (isContained(shape, getPlacement(placement, "up_00")))
-          OcNode(coords, insertTree(shape, up_00, getPlacement(placement, "up_00")), up_01, up_10, up_11, down_00, down_01, down_10, down_11)
-        else if (isContained(shape, getPlacement(placement, "up_01")))
-          OcNode(coords, up_00, insertTree(shape, up_01, getPlacement(placement, "up_01")), up_10, up_11, down_00, down_01, down_10, down_11)
-        else if (isContained(shape, getPlacement(placement, "up_10")))
-          OcNode(coords, up_00, up_01, insertTree(shape, up_10, getPlacement(placement, "up_10")), up_11, down_00, down_01, down_10, down_11)
-        else if (isContained(shape, getPlacement(placement, "up_11")))
-          OcNode(coords, up_00, up_01, up_10, insertTree(shape, up_11, getPlacement(placement, "up_11")), down_00, down_01, down_10, down_11)
+        /*if (isContained(shape, coords) && up_00.isInstanceOf[OcLeaf[Placement, Section]] && !isContained(shape, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1)) {
+        val s: Section = new Section(coords, up_00.asInstanceOf[OcLeaf[Placement, Section]].section._2.filter(x => x.asInstanceOf[Shape3D].getDrawMode != DrawMode.LINE).concat(List(shape, createPartition(coords))))
+        OcLeaf(s)
+        val o: Octree[Placement] = OcNode(coords,
+          OcLeaf(s),
+          insertTree(shape, up_01, getPlacement(placement, "up_01")),
+          insertTree(shape, up_10, getPlacement(placement, "up_10")),
+          insertTree(shape, up_11, getPlacement(placement, "up_11")),
+          insertTree(shape, down_00, getPlacement(placement, "down_00")),
+          insertTree(shape, down_01, getPlacement(placement, "down_01")),
+          insertTree(shape, down_10, getPlacement(placement, "down_10")),
+          insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        // verificar se o placement do nó são iguais às coordenadas da ocleaf
+        if (o.asInstanceOf[OcNode[Placement]].up_00.isInstanceOf[OcLeaf[Placement, Section]] && o.asInstanceOf[OcNode[Placement]].up_00.asInstanceOf[OcLeaf[Placement, Section]].section._1 == o.asInstanceOf[OcNode[Placement]].coords)
+          o.asInstanceOf[OcNode[Placement]].up_00
+        else
+          o
+      }
+      else */
+        /*if(shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)/* ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_01")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_10")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "up_11")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_00")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_01")).getBoundsInParent) ||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_10")).getBoundsInParent)||
+        shape.getBoundsInParent.intersects(createPartition(getPlacement(coords, "down_11")).getBoundsInParent)*/
+        ) {
+        println(shape.getBoundsInParent)
+        println(createPartition(getPlacement(coords, "up_00")).getBoundsInParent)
+        val s = new Section(coords,List(shape,createPartition(getPlacement(coords, "up_00"))))
+        OcLeaf(s)
+      } else*/
+
+        /*if (isContained(shape, getPlacement(placement, "down_00")) ||
+          isContained(shape, getPlacement(placement, "down_01")) ||
+          isContained(shape, getPlacement(placement, "down_10")) ||
+          isContained(shape, getPlacement(placement, "down_11")) ||
+          isContained(shape, getPlacement(placement, "up_01")) ||
+          isContained(shape, getPlacement(placement, "up_10")) ||
+          isContained(shape, getPlacement(placement, "up_11")) ||
+          isContained(shape, getPlacement(placement, "up_00"))
+        ) {
+          OcNode(coords,
+            insertTree(shape, up_00, getPlacement(placement, "up_00")),
+            insertTree(shape, up_01, getPlacement(placement, "up_01")),
+            insertTree(shape, up_10, getPlacement(placement, "up_10")),
+            insertTree(shape, up_11, getPlacement(placement, "up_11")),
+            insertTree(shape, down_00, getPlacement(placement, "down_00")),
+            insertTree(shape, down_01, getPlacement(placement, "down_01")),
+            insertTree(shape, down_10, getPlacement(placement, "down_10")),
+            insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        }*/
+        if(isContained(shape, getPlacement(placement, "down_00")))
+          OcNode(coords,up_00, up_01, up_10, up_11, insertTree(shape, down_00, getPlacement(placement, "down_00")), down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "down_01")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, insertTree(shape, down_01, getPlacement(placement, "down_01")), down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "down_10")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, down_01,insertTree(shape, down_10, getPlacement(placement, "down_10")), down_11)
+        else if(isContained(shape, getPlacement(placement, "down_11")))
+          OcNode(coords,up_00, up_01, up_10, up_11, down_00, down_01, down_10, insertTree(shape, down_11, getPlacement(placement, "down_11")))
+        else if(isContained(shape, getPlacement(placement, "up_00")))
+          OcNode(coords,insertTree(shape, up_00, getPlacement(placement, "up_00")), up_01, up_10, up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_01")))
+          OcNode(coords,up_00, insertTree(shape, up_01, getPlacement(placement, "up_01")), up_10, up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_10")))
+          OcNode(coords,up_00,up_01, insertTree(shape, up_10, getPlacement(placement, "up_10")), up_11, down_00, down_01, down_10, down_11)
+        else if(isContained(shape, getPlacement(placement, "up_11")))
+          OcNode(coords,up_00,up_01,up_10, insertTree(shape, up_11, getPlacement(placement, "up_11")), down_00, down_01, down_10, down_11)
         else { // Se o modelo gráfico não cabe em nenhuma das sub-partições do nós, então vai buscar os modelos gráficos da folhas desse nó para os guardar na nova leaf
           val nodeObjs = getTreeGraphics(t) //get modelos gráficos do OcNode - Octree
           if (nodeObjs.isEmpty) { // Se ainda não existiam modelos gráficos na dependência do nó
