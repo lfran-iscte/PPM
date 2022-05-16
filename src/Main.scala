@@ -351,12 +351,12 @@ class Main extends Application {
     val rgb = new PhongMaterial(Color.rgb(getRGB(0).toInt, getRGB(1).toInt, getRGB(2).toInt))
     s.setMaterial(rgb)
     if (a.length == 8){
-    s.setTranslateX(a(2).toInt)
-    s.setTranslateY(a(3).toInt)
-    s.setTranslateZ(a(4).toInt)
-    s.setScaleX(a(5).toInt)
-    s.setScaleY(a(6).toInt)
-    s.setScaleZ(a(7).toInt)}
+      s.setTranslateX(a(2).toInt)
+      s.setTranslateY(a(3).toInt)
+      s.setTranslateZ(a(4).toInt)
+      s.setScaleX(a(5).toInt)
+      s.setScaleY(a(6).toInt)
+      s.setScaleZ(a(7).toInt)}
     else{
       s.setTranslateX(0)
       s.setTranslateY(0)
@@ -474,20 +474,20 @@ class Main extends Application {
           partition.setTranslateY(coords._2/2)
           partition.setTranslateZ(coords._2/2)
         }
-          else{
-        partition.setTranslateX(coords._1._1)
-        partition.setTranslateY(coords._1._2)
-        partition.setTranslateZ(coords._1._3)}
+        else{
+          partition.setTranslateX(coords._1._1)
+          partition.setTranslateY(coords._1._2)
+          partition.setTranslateZ(coords._1._3)}
         partition.setDrawMode(DrawMode.LINE)
         List(partition.asInstanceOf[Shape3D]) :::
-        makeTreePartitions(up_00) :::
-        makeTreePartitions(up_01) :::
-        makeTreePartitions(up_10) :::
-        makeTreePartitions(up_11) :::
-        makeTreePartitions(down_00) :::
-        makeTreePartitions(down_01) :::
-        makeTreePartitions(down_10) :::
-        makeTreePartitions(down_11)
+          makeTreePartitions(up_00) :::
+          makeTreePartitions(up_01) :::
+          makeTreePartitions(up_10) :::
+          makeTreePartitions(up_11) :::
+          makeTreePartitions(down_00) :::
+          makeTreePartitions(down_01) :::
+          makeTreePartitions(down_10) :::
+          makeTreePartitions(down_11)
     }
   }
   def addPartitionsToWorld(l: List[Shape3D], worldObjects: Group): Unit = {
